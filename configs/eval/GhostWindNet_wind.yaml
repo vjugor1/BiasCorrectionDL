@@ -1,0 +1,29 @@
+wind_risk_threshold: 20
+use_elevation: false
+
+time_start: '2018-06-01'
+time_end: '2018-07-01'
+
+lat_min: 33
+lat_max: 72
+lon_min: -26
+lon_max: 51
+
+interpolation_res: 0.25           #if None - does not apply interpolation
+
+num_workers_eval: 2
+batch_size_test: 64
+distributed_test: false
+strategy: ddp
+gpu_num: 1
+
+save_kml: false                   #if false, saves to csv
+
+data_dir: data/cmip6_1deg_world_18_25/      # directory to get climate files for test and inference
+target_data_file: target_temp.parquet  # target data file in data_dir for training for test and inference
+
+path_to_checkpoint: /trinity/home/aleksandr.lukashevich/Wind/out/2023-12-09/11-37-51/epoch=6-step=51793.ckpt #out/wind.ckpt
+path_to_predictions: out/predictions/result_test_wind.csv  #regression output
+output_file: out/predictions/eu_cmip6      #format is chosen from `save_kml` boolean attribute
+cmip_type: CMIP6
+

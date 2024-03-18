@@ -1,0 +1,32 @@
+wind_risk_threshold: 20
+use_elevation: false
+
+time_start: '2018-12-09'
+time_end: '2018-12-09'
+
+lat_min: -90
+lat_max: 90
+lon_min: -180
+lon_max: 180 
+
+interpolation_res: 0.2           #if None - does not apply interpolation
+
+num_workers_eval: 16
+batch_size_test: 256 
+distributed_test: false
+strategy: auto
+gpu_num: 1
+
+save_kml: true                   #if false, saves to csv
+
+data_dir: data/cmip6_1deg_world/      # directory to get climate files for test and inference
+target_data_file: target.parquet  # target data file in data_dir for training for test and inference
+
+path_to_checkpoint: /trinity/home/v.morozov/Wind/out/2023-09-14/00-10-59/epoch=3-step=7240.ckpt
+path_to_predictions: out/predictions/result_world_cmip6.csv
+output_file: out/predictions/output_file_world_cmip6      #format is chosen from `save_kml` boolean attribute
+cmip_type: CMIP6
+
+
+
+

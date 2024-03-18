@@ -1,0 +1,7 @@
+paths_to_climate_files_folders: 
+- 'data/cmip/MRI_100km'
+path_to_elevation: 'data/elevation.nc'
+
+path_to_weather_stations_data: "data/weatherstation_data/data_meteo_full.parquet"
+path_to_weather_station_list: "data/weatherstation_data/weatherstation_list.json"
+path_to_world_weather_stations_data: "data/weatherstation_data/world_stations_25_days_6_months.parquet"

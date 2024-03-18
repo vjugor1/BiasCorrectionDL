@@ -1,0 +1,44 @@
+make_tmp_target_file: false
+
+use_elevation: false
+normalize: false      # precision 16 is already normalized
+time_agg_window: 36   # range in days, used to calculate maximum for every day of target
+time_freq: 8          # get sample from target every {time_freq} days
+target_threshold: 3
+
+data_dir: data/cmip6_1deg_world      # directory to get climate files for training
+target_data_file: target_pr.parquet  # target data file in data_dir for training
+
+variables:                                      #CMIP variable names to use
+- tasmax
+- sfcWind
+- pr
+start_time: '1955-01-01'
+end_time: '2020-12-31'
+start_of_test: '2008-01-01'
+
+
+
+spatial_crop: false
+lat_min: 30
+lat_max: 50
+lon_min: -30
+lon_max: 40
+
+batch_size: 128
+learning_rate: 0.009
+weight_decay: 0.001
+max_epoch: 8
+
+
+optimizer_name: 'AdamW'
+scheduler_name: 'OneCycleLR'
+loss_name: 'MSELoss'
+
+num_workers: 8
+gpu_num: 1
+distributed: false
+num_nodes: 1
+strategy: 'ddp'
+
+log_every_n_steps: 100 
