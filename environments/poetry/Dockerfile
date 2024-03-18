@@ -19,7 +19,7 @@ RUN apt-get update \
     && apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-FROM python:3.10-slim
+FROM python:3.12-slim
 
 # Create a non-root user and set permissions
 ARG DOCKER_USER_ID
@@ -27,7 +27,7 @@ ARG DOCKER_GROUP_ID
 
 COPY poetry.lock pyproject.toml ./
 
-RUN python -m pip install --no-cache-dir poetry==1.7.1 \
+RUN python -m pip install --no-cache-dir poetry==1.8.2 \
     && poetry config virtualenvs.in-project true \
     && poetry lock --no-update \
     && poetry install --no-interaction --no-ansi
