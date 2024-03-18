@@ -22,8 +22,8 @@ save_kml: true                   #if false, saves to csv
 data_dir: data/cmip6_1deg_world/      # directory to get climate files for test and inference
 target_data_file: target.parquet  # target data file in data_dir for training for test and inference
 
-path_to_checkpoint: /app/wind/out/wind.ckpt
-path_to_predictions: out/predictions/result_world_cmip6.csv
-output_file: out/predictions/output_file_world_cmip6      #format is chosen from `save_kml` boolean attribute
+path_to_checkpoint: /app/wind/data/02-models/wind.ckpt
+path_to_predictions: /app/wind/data/03-results/result_world_cmip6.csv
+output_file: /app/wind/data/03-results/output_file_world_cmip6      #format is chosen from `save_kml` boolean attribute
 cmip_type: CMIP6
 

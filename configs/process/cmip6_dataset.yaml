@@ -1,4 +1,4 @@
-data_dir: data/cmip6_1deg_world_18_25/                      #Path to folder which will contain prepocessed data for further training, testing and inferring 
+data_dir: /app/wind/data/01-prepared/cmip6_1deg_world_18_25/                      #Path to folder which will contain prepocessed data for further training, testing and inferring 
 prepared_target_data_name: target.parquet       #Prepared target will be saved under this name
 
 make_climate_data: true                         #If to prepare climate data. Turn to `false` if you already done this step and do not want to change anything regarding climate data

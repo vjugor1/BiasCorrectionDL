@@ -86,8 +86,8 @@ class EvalDataset(torch.utils.data.Dataset):
         """Crop data by spatial coordinates"""
         time_start = pd.to_datetime(self.cfg.start_date)
         time_end = pd.to_datetime(self.cfg.end_date)
-        self.time_min_idx = np.searchsorted(self.time_coords_full, time_start)
-        self.time_max_idx = np.searchsorted(self.time_coords_full, time_end)
+        self.time_min_idx = np.searchsorted(self.time_coords_full, time_start.date())
+        self.time_max_idx = np.searchsorted(self.time_coords_full, time_end.date())
 
         self.time_coords = self.time_coords_full[self.time_min_idx:self.time_max_idx]
         self.time_indexes = list(range(self.time_min_idx + self.cfg.time_window//2, self.time_max_idx + self.cfg.time_window//2)) 

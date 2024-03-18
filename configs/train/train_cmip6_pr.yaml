@@ -6,7 +6,7 @@ time_agg_window: 36   # range in days, used to calculate maximum for every day o
 time_freq: 8          # get sample from target every {time_freq} days
 target_threshold: 3
 
-data_dir: data/cmip6_1deg_world      # directory to get climate files for training
+data_dir: /app/wind/data/01-prepared/cmip6_1deg_world      # directory to get climate files for training
 target_data_file: target_pr.parquet  # target data file in data_dir for training
 
 variables:                                      #CMIP variable names to use

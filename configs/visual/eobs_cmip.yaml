@@ -1,25 +1,21 @@
 #visiulisation
-path_to_predictions: out/predictions/france
+path_to_predictions: /app/wind/data/03-results/result_test_temp.csv
 
-plots_dir: out/france_video
+plots_dir: out/visual_eobs27
 
-vis_cmip_var: null #sfcWindmax # tasmax # 
-vis_eobs_var: null #fg # tn #fg - windm 
+vis_cmip_var: tasmax # sfcWindmax
+vis_eobs_var: tn #fg - windm 
 
 path_to_norm_values_cmip: src/utils/norm_values.py
-quantile_gt: 0.97
-quantile_cmip: 0.97
+quantile_gt: 0.85
+quantile_cmip: 0.85
 
 gt_data_folder: data/dataset-insitu-gridded-observations-europe-0ddfc2ac-7eb7-48af-b527-bdd5be538903/
 
 timestamp: '2018-06-06' 
 
-make_video: true
-transform_to_risk: true
-risk_threshold: 20 #for m/s
-
 vis_lat_min: 39.5
 vis_lat_max: 70.5
 vis_lon_min: -8.5
 vis_lon_max: 42.5
-gt_res: 0.1
+gt_res: 0.25

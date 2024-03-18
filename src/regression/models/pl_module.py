@@ -215,6 +215,7 @@ class WindNetPL(pl.LightningModule):
     
     def on_test_start(self):
         print(f'Plots will be saved to {self.run_dir}')
+        os.makedirs(self.run_dir, exist_ok=True)
         self.test_outputs = []
 
     def on_test_epoch_end(self):

@@ -31,12 +31,12 @@ def log_model_arch(model):
 
 def train_regression(cfg: DictConfig) -> None: 
     logging.info(f"Starting in {os.getcwd()}")
-    start_time = time.process_time()  
-    os.environ['WANDB_API_KEY'] = '7ce4e8a3a21df6f25a3a589a9de3f52c759b3633'
-    os.environ['WANDB_MODE'] = 'offline'
-    # os.environ['WANDB_DIR'] = 'out/wandb'
-    # os.environ['WANDB_CONFIG_DIR'] = 'out/wandb'
-    # os.environ['WANDB_CACHE_DIR'] = 'out/wandb'
+    start_time = time.process_time() 
+    
+    os.environ['WANDB_MODE'] = 'online'
+    os.environ['WANDB_DIR'] = 'out/wandb'
+    os.environ['WANDB_CONFIG_DIR'] = 'out/wandb'
+    os.environ['WANDB_CACHE_DIR'] = 'out/wandb'
     torch.set_float32_matmul_precision('high')
     run_dir = get_rundir_name()  
     wandb_logger = WandbLogger(save_dir=os.path.join(os.getcwd(), run_dir),
@@ -82,7 +82,7 @@ def train_regression(cfg: DictConfig) -> None:
                          #misc
                          profiler='simple',
                          )   
-    log_config(cfg)
+    # log_config(cfg)
     logging.info(f"Time to start train {time.process_time() - start_time} seconds")
     trainer.fit(model, dm)
     

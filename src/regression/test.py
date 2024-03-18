@@ -41,7 +41,7 @@ def test(cfg: DictConfig) -> None:
 
     wandb_logger.watch(model, log='all', log_freq=100)       
     trainer = pl.Trainer(max_epochs=cfg.train.max_epoch,
-                         accelerator="gpu" if ((cfg.model_name != "BaselineQT") and (cfg.model_name != "BaselineQW")) else "cpu",
+                         accelerator="gpu",
                          precision="32",
                          benchmark=True,
                          devices=cfg.eval.gpu_num,
@@ -52,10 +52,7 @@ def test(cfg: DictConfig) -> None:
                         )
     
     logging.info(f"Time to start test {time.process_time() - start_time} seconds")
-    if (cfg.model_name == "BaselineQT") or (cfg.model_name == "BaselineQW"):
-        trainer.test(model, dm)
-    else:
-        trainer.test(model, dm, ckpt_path=os.path.join(os.getcwd(), cfg.eval.path_to_checkpoint))
+    trainer.test(model, dm, ckpt_path=os.path.join(os.getcwd(), cfg.eval.path_to_checkpoint))
  
 
 @hydra.main(version_base=None, config_path=os.path.join(os.getcwd(),"configs"), config_name="cmip6_GhostWindNet27.yaml")

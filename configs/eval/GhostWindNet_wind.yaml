@@ -19,11 +19,11 @@ gpu_num: 1
 
 save_kml: false                   #if false, saves to csv
 
-data_dir: data/cmip6_1deg_world_18_25/      # directory to get climate files for test and inference
+data_dir: /app/wind/data/01-prepared/cmip6_1deg_world      # directory to get climate files for test and inference
 target_data_file: target_temp.parquet  # target data file in data_dir for training for test and inference
 
-path_to_checkpoint: /trinity/home/aleksandr.lukashevich/Wind/out/2023-12-09/11-37-51/epoch=6-step=51793.ckpt #out/wind.ckpt
-path_to_predictions: out/predictions/result_test_wind.csv  #regression output
-output_file: out/predictions/eu_cmip6      #format is chosen from `save_kml` boolean attribute
+path_to_checkpoint: /app/wind/data/02-models/GhostNet_wind.ckpt #out/wind.ckpt
+path_to_predictions: /app/wind/data/03-results/result_test_wind.csv  #regression output
+output_file: /app/wind/data/03-results/eu_cmip6      #format is chosen from `save_kml` boolean attribute
 cmip_type: CMIP6
 
