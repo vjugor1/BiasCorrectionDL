@@ -3,11 +3,11 @@
 # Script to build the BiasCorrectionDL Docker image
 
 # Define the image name and tag
-# IMAGE_NAME="bias"
+IMAGE_NAME="bias"
 IMAGE_TAG="2.0"
 
 # Build the Docker image with build arguments for user and group IDs
-docker build -t "$(id -un)/bias:${IMAGE_TAG}" . \
+docker build -t "$(id -un)/${IMAGE_NAME}:${IMAGE_TAG}" . \
         --build-arg DOCKER_USER_ID=$(id -u) \
         --build-arg DOCKER_GROUP_ID=$(id -g) \
         --progress=plain
