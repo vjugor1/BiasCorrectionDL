@@ -1,11 +1,13 @@
 {
-    "files.exclude": {
-      ".*": true,
+  "files.exclude": {
+    ".*": true
   },
   "python.autoComplete.extraPaths": [
-  "/.venv/bin/python"
+    "/.venv/bin/python"
   ],
   "python.analysis.extraPaths": [
     "/.venv/bin/python"
-  ]
+  ],
+  "python.dataScience.notebookFileRoot": "${workspaceFolder}/app",
+  "jupyter.notebookFileRoot": "${workspaceFolder}/app"
 }
