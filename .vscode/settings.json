@@ -1,5 +1,11 @@
 {
     "files.exclude": {
       ".*": true,
-  }
+  },
+  "python.autoComplete.extraPaths": [
+  "/.venv/bin/python"
+  ],
+  "python.analysis.extraPaths": [
+    "/.venv/bin/python"
+  ]
 }
