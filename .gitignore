@@ -25,3 +25,4 @@ data_mounted
 slurm_run.sh
 *.sif
 data_sl
+.vscode
