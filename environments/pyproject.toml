@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "bias-correction"
-version = "0.1.1"
+version = "0.1.0"
 description = ""
 authors = ["Team"]
 package-mode = false
@@ -40,6 +40,8 @@ fastparquet = "^2024.2.0"
 torchdata = "^0.7.1"
 ipykernel = "^6.29.3"
 diffusers = "^0.27.2"
+rioxarray = "^0.15.1"
+ipyleaflet = "^0.18.2"
 
 
 [build-system]
