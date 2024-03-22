@@ -1,12 +1,13 @@
 era_save_path: '/app/data/era5'
 
-year_start: 1980
+year_start: 1979
 year_end: 2010
 
 # variables
 single_level_vars:
     - "2m_temperature"
-    - "total_precipitation"
+    # - "total_precipitation"
+
 # multilevel_vars:
 #     - "geopotential"
 

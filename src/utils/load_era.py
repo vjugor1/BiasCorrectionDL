@@ -39,12 +39,27 @@ def run_zarr_load(cfg: DictConfig):#vars, years, PATH):
     for year in tqdm(years):
         for var in [*vars]:
             logging.info(f"Variable: {var}; Year: {year}")
-            data_sel = data[var].sel(time=str(year))
+            data_var = data[var].sel(time=str(year))
             
             if var=="2m_temperature":
-                data_sel = data_sel.resample(time='1D').mean(dim='time')
+                # data_sel = data_var.resample(time='1D').mean(dim='time')
+                # # Adjust the path and save to zarr
+                # zarr_path = os.path.join(PATH, "{}_mean_{}.zarr".format(var, year))
+                # data_sel.to_zarr(zarr_path, mode='w')
+                
+                data_sel = data_var.resample(time='1D').min(dim='time')
+                # Adjust the path and save to zarr
+                zarr_path = os.path.join(PATH, "{}_min_{}.zarr".format(var, year))
+                data_sel.to_zarr(zarr_path, mode='w')
+                
+                data_sel = data_var.resample(time='1D').max(dim='time')
+                # Adjust the path and save to zarr
+                zarr_path = os.path.join(PATH, "{}_max_{}.zarr".format(var, year))
+                data_sel.to_zarr(zarr_path, mode='w')
+                
             elif var=="total_precipitation":
-                data_sel = data_sel.resample(time='1D').sum(dim='time')
+                data_sel = data_var.resample(time='1D').sum(dim='time')
+
             else:
                 print(f"For variable {var} procedure not implemented")
 
