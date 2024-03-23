@@ -1,0 +1,21 @@
+#!/bin/bash
+
+# Script to build the BiasCorrectionDL Docker image
+
+# Define the image name and tag
+IMAGE_NAME="bias"
+IMAGE_TAG="3.0"
+
+# Build the Docker image with build arguments for user and group IDs
+docker build -t "$(id -un)/${IMAGE_NAME}:${IMAGE_TAG}" . \
+        --build-arg DOCKER_USER_ID=$(id -u) \
+        --build-arg DOCKER_GROUP_ID=$(id -g) \
+        --progress=plain
+
+# Check if the Docker build command succeeded
+if [ $? -ne 0 ]; then
+    echo "Failed to build the Docker image."
+    exit 1
+fi
+
+echo "Docker image ${IMAGE_NAME}:${IMAGE_TAG} built successfully."

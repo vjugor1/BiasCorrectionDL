@@ -42,10 +42,10 @@ def run_zarr_load(cfg: DictConfig):#vars, years, PATH):
             data_var = data[var].sel(time=str(year))
             
             if var=="2m_temperature":
-                # data_sel = data_var.resample(time='1D').mean(dim='time')
+                data_sel = data_var.resample(time='1D').mean(dim='time')
                 # # Adjust the path and save to zarr
-                # zarr_path = os.path.join(PATH, "{}_mean_{}.zarr".format(var, year))
-                # data_sel.to_zarr(zarr_path, mode='w')
+                zarr_path = os.path.join(PATH, "{}_{}.zarr".format(var, year))
+                data_sel.to_zarr(zarr_path, mode='w')
                 
                 data_sel = data_var.resample(time='1D').min(dim='time')
                 # Adjust the path and save to zarr
@@ -59,14 +59,12 @@ def run_zarr_load(cfg: DictConfig):#vars, years, PATH):
                 
             elif var=="total_precipitation":
                 data_sel = data_var.resample(time='1D').sum(dim='time')
-
+                # Adjust the path and save to zarr
+                zarr_path = os.path.join(PATH, "{}_{}.zarr".format(var, year))
+                data_sel.to_zarr(zarr_path, mode='w')
             else:
                 print(f"For variable {var} procedure not implemented")
-
-            # Save to Zarr
-            # Adjust the path and potentially add storage options if saving to cloud storage
-            zarr_path = os.path.join(PATH, "{}_{}.zarr".format(var, year))
-            data_sel.to_zarr(zarr_path, mode='w')
+            
     logging.info("Download finished.")
 
 if __name__ == "__main__":
