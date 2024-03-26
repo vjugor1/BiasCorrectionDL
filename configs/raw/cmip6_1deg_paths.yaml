@@ -1,7 +1,0 @@
-paths_to_climate_files_folders: 
-- '/app/wind/data/00-raw/cmip/MRI_100km'
-path_to_elevation: null
-
-path_to_weather_stations_data: "/app/wind/data/00-raw/weatherstation_data/data_meteo_full.parquet"
-path_to_weather_station_list: "/app/wind/data/00-raw/weatherstation_data/weatherstation_list.json"
-path_to_world_weather_stations_data: "/app/wind/data/00-raw/weatherstation_data/world_stations_25_days_6_months.parquet"

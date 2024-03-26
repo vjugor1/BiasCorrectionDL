@@ -1,2 +1,0 @@
-defaults:
-  - load: era.yaml    # paths to raw data to prepare dataset
