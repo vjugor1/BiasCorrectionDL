@@ -135,6 +135,7 @@ results/
 .vscode
 lightning_logs/
 models/outputs/
+!src/climate_learn/data/
 
 # files
-.gitignore
+# .gitignore
