@@ -239,10 +239,10 @@ load_downscaling_module = partial(
     task="downscaling",
     train_loss="mse",
     val_loss=["rmse", "pearson", "mean_bias", "mse"],
-    test_loss=["rmse", "pearson", "mean_bias"],
+    test_loss=["rmse", "pearson", "mean_bias", "mse"],
     train_target_transform=None,
     val_target_transform=["denormalize", "denormalize", "denormalize", None],
-    test_target_transform=["denormalize", "denormalize", "denormalize"],
+    test_target_transform=["denormalize", "denormalize", "denormalize", None],
 )
 
 

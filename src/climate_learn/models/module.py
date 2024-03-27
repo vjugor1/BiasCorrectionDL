@@ -101,14 +101,14 @@ class LitModule(pl.LightningModule):
         self,
         batch: Tuple[torch.Tensor, torch.Tensor, List[str], List[str]],
         batch_idx: int,
-    ) -> torch.Tensor:
+    ):
         self.evaluate(batch, "val")
 
     def test_step(
         self,
         batch: Tuple[torch.Tensor, torch.Tensor, List[str], List[str]],
         batch_idx: int,
-    ) -> torch.Tensor:
+    ):
         if self.mode == "direct":
             self.evaluate(batch, "test")
         if self.mode == "iter":
@@ -135,15 +135,15 @@ class LitModule(pl.LightningModule):
                 y_ = transforms[i](y)
             losses = lf(yhat_, y_)
             loss_name = getattr(lf, "name", f"loss_{i}")
-            if losses.dim() == 0:  # aggregate loss
-                loss_dict[f"{stage}/{loss_name}:agggregate"] = losses
+            if losses.dim() == 0: # aggregate loss
+                loss_dict[f"{stage}/{loss_name}:aggregate"] = losses
             else:  # per channel + aggregate
                 for var_name, loss in zip(out_variables, losses):
-                    name = f"{stage}/{loss_name}:{var_name}"
-                    loss_dict[name] = loss
+                    loss_dict[f"{stage}/{loss_name}:{var_name}"] = loss
                 loss_dict[f"{stage}/{loss_name}:aggregate"] = losses[-1]
         self.log_dict(
             loss_dict,
+            prog_bar=True,
             on_step=False,
             on_epoch=True,
             sync_dist=True,
@@ -186,7 +186,7 @@ class LitModule(pl.LightningModule):
             losses = lf(yhat_t, y_t)
             loss_name = getattr(lf, "name", f"loss_{i}")
             if losses.dim() == 0:  # aggregate loss
-                loss_dict[f"{stage}/{loss_name}:agggregate"] = losses
+                loss_dict[f"{stage}/{loss_name}:aggregate"] = losses
             else:  # per channel + aggregate
                 for var_name, loss in zip(out_variables, losses):
                     name = f"{stage}/{loss_name}:{var_name}"
@@ -194,6 +194,7 @@ class LitModule(pl.LightningModule):
                 loss_dict[f"{stage}/{loss_name}:aggregate"] = losses[-1]
         self.log_dict(
             loss_dict,
+            prog_bar=True,
             on_step=False,
             on_epoch=True,
             sync_dist=True,
