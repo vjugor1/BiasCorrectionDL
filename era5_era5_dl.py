@@ -7,6 +7,7 @@ from src.climate_learn import LitModule, IterDataModule, load_downscaling_module
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import (
     EarlyStopping,
+    LearningRateMonitor,
     ModelCheckpoint,
     RichModelSummary,
     RichProgressBar,
@@ -17,30 +18,40 @@ torch.set_float32_matmul_precision("medium")
 
 parser = ArgumentParser()
 parser.add_argument(
-    "era5_low_res_dir",
+    "--default_root_dir",
     type=str,
-    default="/app/data/ClimateLearn/processed/ERA5/5.625_24sh",
+    default="/app/data/ClimateLearn/experiments/downscaling-ERA5-ERA5/vit_downscaling_t2_t2_single_gpu_bilinear_sched",
 )
 parser.add_argument(
-    "era5_high_res_dir",
+    "--era5_low_res_dir",
     type=str,
-    default="/app/data/ClimateLearn/processed/ERA5/2.8125_24sh",
+    default="/app/data/ClimateLearn/processed/ERA5/5.625",
 )
 parser.add_argument(
-    "architecture", type=str, choices=["resnet", "unet", "vit"], default="vit"
+    "--era5_high_res_dir",
+    type=str,
+    default="/app/data/ClimateLearn/processed/ERA5/2.8125",
+)
+parser.add_argument(
+    "--architecture", type=str, choices=["resnet", "unet", "vit"], default="vit"
+)
+parser.add_argument(
+    "--upsampling",
+    type=str,
+    choices=["bilinear", "bicubic", "unet_upsampling", "unet_upsampling_bilinear"],
+    default="bilinear",
 )
 parser.add_argument("--summary_depth", type=int, default=1)
 parser.add_argument("--max_epochs", type=int, default=100)
 parser.add_argument("--patience", type=int, default=5)
-parser.add_argument("--gpu", type=int, default=[0, 1, 2, 3])
+parser.add_argument("--gpu", type=list, default=[0,1,2,3])
 parser.add_argument("--checkpoint", default=None)
 args = parser.parse_args()
 
 
 # Set up data
-in_vars = out_vars = [
-    "2m_temperature",
-]
+in_vars = ["2m_temperature", "temperature_850", "geopotential_500"]
+out_vars = ["2m_temperature", "temperature_850", "geopotential_500"]
 
 dm = IterDataModule(
     task="downscaling",
@@ -59,6 +70,10 @@ dm.setup()
 model = load_downscaling_module(
     data_module=dm,
     architecture=args.architecture,
+    upsampling=args.upsampling,
+    optim_kwargs={"lr": 5e-4},
+    sched="linear-warmup-cosine-annealing",
+    sched_kwargs={"warmup_epochs": 5, "max_epochs": 50},
     train_loss="mse",
     val_loss=["rmse", "pearson", "mean_bias", "mse"],
     test_loss=["rmse", "pearson", "mean_bias", "mse"],
@@ -69,31 +84,29 @@ model = load_downscaling_module(
 
 # Setup trainer
 pl.seed_everything(0)
-default_root_dir = (
-    f"data/ClimateLearn/processed/downscaling-ERA5-ERA5/vit_downscaling_t2m"
-)
-logger = TensorBoardLogger(save_dir=f"{default_root_dir}/logs")
+logger = TensorBoardLogger(save_dir=f"{args.default_root_dir}/logs")
 early_stopping = "val/mse:aggregate"
 callbacks = [
     RichProgressBar(),
     RichModelSummary(max_depth=args.summary_depth),
     EarlyStopping(monitor=early_stopping, patience=args.patience),
     ModelCheckpoint(
-        dirpath=f"{default_root_dir}/checkpoints",
+        dirpath=f"{args.default_root_dir}/checkpoints",
         monitor=early_stopping,
         filename="epoch_{epoch:03d}",
         auto_insert_metric_name=False,
     ),
+    LearningRateMonitor(logging_interval="epoch"),
 ]
 trainer = pl.Trainer(
     enable_progress_bar=True,
     logger=logger,
     callbacks=callbacks,
-    default_root_dir=default_root_dir,
+    default_root_dir=args.default_root_dir,
     accelerator="gpu",
-    devices=[0],
+    devices=args.gpu,
     max_epochs=args.max_epochs,
-    strategy="auto",
+    strategy="ddp",
     precision="16-mixed",
 )
 

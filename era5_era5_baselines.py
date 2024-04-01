@@ -1,15 +1,14 @@
 # Standard library
 from argparse import ArgumentParser
 
+import pytorch_lightning as pl
+
 # Third party
 import torch
-from src.climate_learn.data import IterDataModule
+from pytorch_lightning.callbacks import RichModelSummary, RichProgressBar
+
 from src.climate_learn import load_downscaling_module
-import pytorch_lightning as pl
-from pytorch_lightning.callbacks import (
-    RichModelSummary,
-    RichProgressBar,
-)
+from src.climate_learn.data import IterDataModule
 
 torch.set_float32_matmul_precision("medium")
 
@@ -17,14 +16,21 @@ parser = ArgumentParser()
 parser.add_argument(
     "era5_low_res_dir",
     type=str,
-    default="/app/data/ClimateLearn/processed/ERA5/5.625_24sh",
+    default="/app/data/ClimateLearn/processed/ERA5/5.625",
 )
 parser.add_argument(
     "era5_high_res_dir",
     type=str,
-    default="/app/data/ClimateLearn/processed/ERA5/2.8125_24sh",
+    default="/app/data/ClimateLearn/processed/ERA5/2.8125",
 )
 args = parser.parse_args()
+
+# Set up data
+in_vars = out_vars = [
+    "2m_temperature",
+    "geopotential_500",
+    "temperature_850",
+]
 
 dm = IterDataModule(
     task="downscaling",
@@ -44,6 +50,7 @@ nearest = load_downscaling_module(data_module=dm, architecture="nearest-interpol
 bilinear = load_downscaling_module(
     data_module=dm, architecture="bilinear-interpolation"
 )
+bicubic = load_downscaling_module(data_module=dm, architecture="bicubic-interpolation")
 
 callbacks = [
     RichProgressBar(),
@@ -58,7 +65,8 @@ trainer = pl.Trainer(
 
 # Perform validation and testing for each model
 for model, model_name in zip(
-    [nearest, bilinear], ["nearest-interpolation", "bilinear-interpolation"]
+    [nearest, bilinear, bicubic],
+    ["nearest-interpolation", "bilinear-interpolation", "bicubic-interpolation"],
 ):
     print("Validating model:", model_name)
     trainer.validate(model, dataloaders=dm)
