@@ -1,5 +1,6 @@
 from .climatology import Climatology
 from .interpolation import Interpolation
+from .unet_upsampling import UnetUpsampling
 from .linear_regression import LinearRegression
 from .persistence import Persistence
 from .resnet import ResNet

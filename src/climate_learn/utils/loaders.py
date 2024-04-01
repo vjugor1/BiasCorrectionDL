@@ -13,6 +13,7 @@ from ..models.hub import (
     Persistence,
     ResNet,
     Unet,
+    UnetUpsampling,
     VisionTransformer,
 )
 from ..models.lr_scheduler import LinearWarmupCosineAnnealingLR
@@ -35,6 +36,7 @@ def load_model_module(
     optim_kwargs: Optional[Dict[str, Any]] = None,
     sched: Optional[Union[str, LRScheduler]] = None,
     sched_kwargs: Optional[Dict[str, Any]] = None,
+    upsampling: Optional[str] = None,
     train_loss: Optional[Union[str, Callable]] = None,
     val_loss: Optional[Iterable[Union[str, Callable]]] = None,
     test_loss: Optional[Iterable[Union[str, Callable]]] = None,
@@ -53,7 +55,7 @@ def load_model_module(
     elif architecture:
         print(f"Loading architecture: {architecture}")
         model, optimizer, lr_scheduler = load_architecture(
-            task, data_module, architecture
+            task, data_module, architecture, upsampling
         )
     elif isinstance(model, str):
         print(f"Loading model: {model}")
@@ -237,6 +239,7 @@ load_climatebench_module = partial(
 load_downscaling_module = partial(
     load_model_module,
     task="downscaling",
+    upsampling="bilinear",
     train_loss="mse",
     val_loss=["rmse", "pearson", "mean_bias", "mse"],
     test_loss=["rmse", "pearson", "mean_bias", "mse"],
@@ -246,7 +249,7 @@ load_downscaling_module = partial(
 )
 
 
-def load_architecture(task, data_module, architecture):
+def load_architecture(task, data_module, architecture, upsampling):
     in_vars, out_vars = get_data_variables(data_module)
     in_shape, out_shape = get_data_dims(data_module)
 
@@ -304,6 +307,7 @@ def load_architecture(task, data_module, architecture):
         out_channels, out_height, out_width = out_shape[1:]
         if architecture.lower() in (
             "bilinear-interpolation",
+            "bicubic-interpolation",
             "nearest-interpolation",
         ):
             if set(out_vars) != set(in_vars):
@@ -337,9 +341,24 @@ def load_architecture(task, data_module, architecture):
                 )
             else:
                 raise_not_impl()
-            model = nn.Sequential(
-                Interpolation((out_height, out_width), "bilinear"), backbone
-            )
+            if upsampling.lower() in ["none", None]:
+                model = backbone
+            elif upsampling.lower() in ["bilinear", "bicubic", "nearest"]:
+                model = nn.Sequential(
+                    Interpolation((out_height, out_width), upsampling), backbone
+                )
+            elif upsampling.lower()[:4] == "unet":
+                if "bilinear" in upsampling.lower().split("_"):
+                    model = nn.Sequential(
+                        UnetUpsampling((out_height, out_width), in_channels, bilinear=True), backbone
+                    )
+                else:
+                    model = nn.Sequential(
+                        UnetUpsampling((out_height, out_width), in_channels, bilinear=False), backbone
+                    )
+            else:
+                raise_not_impl()
+                
             optimizer = load_optimizer(
                 model, "adamw", {"lr": 1e-5, "weight_decay": 1e-5, "betas": (0.9, 0.99)}
             )
