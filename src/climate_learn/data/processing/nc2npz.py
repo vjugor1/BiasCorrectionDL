@@ -7,19 +7,51 @@ import numpy as np
 import xarray as xr
 import netCDF4 as nc
 from tqdm import tqdm
+import xesmf
 
 # Local application
 from .era5_constants import (
-    DEFAULT_PRESSURE_LEVELS,
-    NAME_TO_VAR,
-    VAR_TO_NAME,
-    CONSTANTS,
+    DEFAULT_PRESSURE_LEVELS_ERA,
+    NAME_TO_VAR_ERA,
+    VAR_TO_NAME_ERA,
+    CONSTANTS_ERA,
 )
 
-HOURS_PER_YEAR = 8760  # 8760 --> 8736 which is dividable by 16
+from .cmip6_constants import (
+    DEFAULT_PRESSURE_LEVELS_CMIP,
+    NAME_TO_VAR_CMIP,
+    VAR_TO_NAME_CMIP,
+    CONSTANTS_CMIP,
+)
 
 
-def nc2np(path, variables, years, save_dir, partition, num_shards_per_year):
+def nc2np(path,
+          src,
+          variables,
+          years,
+          save_dir,
+          partition,
+          num_shards_per_year,
+          frequency,
+          regridder):
+    if src=="era5":
+        DEFAULT_PRESSURE_LEVELS=DEFAULT_PRESSURE_LEVELS_ERA
+        NAME_TO_VAR=NAME_TO_VAR_ERA
+        VAR_TO_NAME=VAR_TO_NAME_ERA
+        CONSTANTS=CONSTANTS_ERA
+    elif src=="cmip6":
+        DEFAULT_PRESSURE_LEVELS=DEFAULT_PRESSURE_LEVELS_CMIP
+        NAME_TO_VAR=NAME_TO_VAR_CMIP
+        VAR_TO_NAME=VAR_TO_NAME_CMIP
+        CONSTANTS=CONSTANTS_CMIP
+
+    assert frequency in ["3H", "D"]
+    assert src in ["era5", "cmip6", "eobs"]
+    if frequency=="3H":
+        OBJ_PER_YEAR = 365*8 #(3hr period yields 8 obj per day)
+    elif frequency=="D":
+        OBJ_PER_YEAR = 365*24
+
     os.makedirs(os.path.join(save_dir, partition), exist_ok=True)
 
     if partition == "train":
@@ -31,7 +63,7 @@ def nc2np(path, variables, years, save_dir, partition, num_shards_per_year):
     constants_are_downloaded = os.path.isfile(constants_path)
 
     if constants_are_downloaded:
-        constants = xr.open_mfdataset(
+        constants = xr.open_mfsrc(
             constants_path, combine="by_coords", parallel=True
         )
         constant_fields = [VAR_TO_NAME[v] for v in CONSTANTS if v in VAR_TO_NAME.keys()]
@@ -39,7 +71,7 @@ def nc2np(path, variables, years, save_dir, partition, num_shards_per_year):
         for f in constant_fields:
             constant_values[f] = np.expand_dims(
                 constants[NAME_TO_VAR[f]].to_numpy(), axis=(0, 1)
-            ).repeat(HOURS_PER_YEAR, axis=0)
+            ).repeat(OBJ_PER_YEAR, axis=0)
             if partition == "train":
                 normalize_mean[f] = constant_values[f].mean(axis=(0, 2, 3))
                 normalize_std[f] = constant_values[f].std(axis=(0, 2, 3))
@@ -54,12 +86,34 @@ def nc2np(path, variables, years, save_dir, partition, num_shards_per_year):
 
         # non-constant fields
         for var in variables:
-            ps = glob.glob(os.path.join(path, var, f"*{year}*.nc"))
-            ds = xr.open_mfdataset(
-                ps, combine="by_coords", parallel=True
-            )  # dataset for a single variable
             code = NAME_TO_VAR[var]
 
+            if src=="era5":
+                ps = glob.glob(os.path.join(path, var, f"*{year}.zarr"))
+                ds = xr.open_mfdataset(
+                    ps, combine="by_coords", parallel=True, engine="zarr"
+                )
+                ds = ds.rename({'longitude': 'lon','latitude': 'lat'})
+                ds.transpose("time", "lat", "lon", ...)
+                # ds.coords["lon"] = (ds.coords["lon"] + 180) % 360 - 180
+                
+            elif src=="cmip6":
+                ps = glob.glob(os.path.join(path, var, "*.nc"))
+                ds = xr.open_mfdataset(
+                    ps, combine="by_coords", parallel=True
+                    )
+                ds = ds.sel(time=slice(f"{year}-01-01", f"{year}-12-31"))
+                # ds.coords["lon"] = (ds.coords["lon"] + 180) % 360 - 180
+                # Align in latitude direction with era
+                # ds  = ds.sortby('lat', ascending=False)
+            # elif src=="eobs":
+            #     ds = ds.rename({'longitude': 'lon','latitude': 'lat'})
+                # ds  = ds.sortby('lat', ascending=False)
+            # ds = ds.sortby(ds.lon)
+            
+            if regridder!= None:
+                ds = regridder(ds, keep_attrs=True)
+            
             if len(ds[code].shape) == 3:  # surface level variables
                 ds[code] = ds[code].expand_dims("val", axis=1)
                 # remove the last 24 hours if this year has 366 days
@@ -69,10 +123,10 @@ def nc2np(path, variables, years, save_dir, partition, num_shards_per_year):
                     tp_cum_6hrs[6:] = tp_cum_6hrs[6:] - tp_cum_6hrs[:-6]
                     eps = 0.001
                     tp_cum_6hrs = np.log(eps + tp_cum_6hrs) - np.log(eps)
-                    np_vars[var] = tp_cum_6hrs[-HOURS_PER_YEAR:]
+                    np_vars[var] = tp_cum_6hrs[:OBJ_PER_YEAR]
                 else:
-                    np_vars[var] = ds[code].to_numpy()[-HOURS_PER_YEAR:]
-
+                    np_vars[var] = ds[code].to_numpy()[:OBJ_PER_YEAR]
+                    
                 if partition == "train":
                     # compute mean and std of each var in each year
                     var_mean_yearly = np_vars[var].mean(axis=(0, 2, 3))
@@ -99,7 +153,7 @@ def nc2np(path, variables, years, save_dir, partition, num_shards_per_year):
                     level = int(level)
                     # remove the last 24 hours if this year has 366 days
                     np_vars[f"{var}_{level}"] = ds_level[code].to_numpy()[
-                        -HOURS_PER_YEAR:
+                        :OBJ_PER_YEAR
                     ]
 
                     if partition == "train":
@@ -119,8 +173,8 @@ def nc2np(path, variables, years, save_dir, partition, num_shards_per_year):
                     else:
                         climatology[f"{var}_{level}"].append(clim_yearly)
 
-        assert HOURS_PER_YEAR % num_shards_per_year == 0
-        num_hrs_per_shard = HOURS_PER_YEAR // num_shards_per_year
+        assert OBJ_PER_YEAR % num_shards_per_year == 0
+        num_hrs_per_shard = OBJ_PER_YEAR // num_shards_per_year
         for shard_id in range(num_shards_per_year):
             start_id = shard_id * num_hrs_per_shard
             end_id = start_id + num_hrs_per_shard
@@ -165,15 +219,36 @@ def nc2np(path, variables, years, save_dir, partition, num_shards_per_year):
     )
 
 
+def regrid(ds_in, align_target):
+    ps1 = glob.glob(os.path.join(align_target, "*"))
+    ps2 = glob.glob(os.path.join(align_target, ps1[0], "*.zarr"))
+    ds = xr.open_mfdataset(
+                    ps2, combine="by_coords", parallel=True, engine="zarr"
+                )
+    lon_coarsen = ds["longitude"][::4].values
+    lat_coarsen = ds["latitude"][::4].values
+    grid_out = {'lon': lon_coarsen, 'lat': lat_coarsen}
+    
+    regridder = xesmf.Regridder(ds_in,
+                                grid_out,
+                                "bilinear",
+                                periodic=True
+                                )
+    return regridder, grid_out
+
+
 def convert_nc2npz(
     root_dir,
     save_dir,
+    src,
     variables,
     start_train_year,
     start_val_year,
     start_test_year,
     end_year,
     num_shards,
+    frequency,
+    align_target
 ):
     assert (
         start_val_year > start_train_year
@@ -185,15 +260,32 @@ def convert_nc2npz(
     test_years = range(start_test_year, end_year)
 
     os.makedirs(save_dir, exist_ok=True)
-
-    nc2np(root_dir, variables, train_years, save_dir, "train", num_shards)
-    nc2np(root_dir, variables, val_years, save_dir, "val", num_shards)
-    nc2np(root_dir, variables, test_years, save_dir, "test", num_shards)
-
-    # save lat and lon data
-    ps = glob.glob(os.path.join(root_dir, variables[0], f"*{train_years[0]}*.nc"))
-    x = xr.open_mfdataset(ps[0], parallel=True)
-    lat = np.array(x["lat"])
-    lon = np.array(x["lon"])
+    
+    if src=="era5":
+        ps = glob.glob(os.path.join(root_dir, variables[0], "*.zarr"))
+        ds = xr.open_mfdataset(
+            ps, combine="by_coords", parallel=True, engine="zarr"
+        )
+        ds = ds.rename({'longitude': 'lon','latitude': 'lat'})
+        
+    elif src=="cmip6":
+        ps = glob.glob(os.path.join(root_dir, variables[0], "*.nc"))
+        ds = xr.open_mfdataset(
+            ps, combine="by_coords", parallel=True
+            )
+    # create regridder and save lat/lon data
+    if align_target!= None: 
+        regridder, grid_out = regrid(ds, align_target)
+        lat = grid_out["lat"]
+        lon = grid_out["lon"]
+    else:
+        regridder=None
+        lat = np.array(ds["lat"])
+        lon = np.array(ds["lon"])
+        
     np.save(os.path.join(save_dir, "lat.npy"), lat)
     np.save(os.path.join(save_dir, "lon.npy"), lon)
+        
+    nc2np(root_dir, src, variables, train_years, save_dir, "train", num_shards, frequency, regridder)
+    nc2np(root_dir, src, variables, val_years, save_dir, "val", num_shards, frequency, regridder)
+    nc2np(root_dir, src, variables, test_years, save_dir, "test", num_shards, frequency, regridder)

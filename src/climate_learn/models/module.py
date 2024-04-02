@@ -2,7 +2,7 @@
 from typing import Callable, List, Optional, Tuple, Union
 
 # Local application
-from ..data.processing.era5_constants import CONSTANTS
+from ..data.processing.era5_constants import CONSTANTS_ERA
 
 # Third party
 import torch
@@ -59,7 +59,7 @@ class LitModule(pl.LightningModule):
     def replace_constant(self, y, yhat, out_variables):
         for i in range(yhat.shape[1]):
             # if constant replace with ground-truth value
-            if out_variables[i] in CONSTANTS:
+            if out_variables[i] in CONSTANTS_ERA:
                 yhat[:, i] = y[:, i]
         return yhat
 

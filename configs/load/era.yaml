@@ -1,0 +1,26 @@
+era_save_path: '/app/data/era5_3h'
+
+year_start: 1982
+year_end: 1983
+
+# variables
+single_level_vars:
+    - "2m_temperature"
+    # - "total_precipitation"
+    # - "10m_u_component_of_wind"
+    # - "10m_v_component_of_wind"
+
+# multilevel_vars:
+#     - "geopotential"
+
+# isobaric surfaces
+level:
+    - 50
+    - 200
+    - 250
+    - 300
+    - 500
+    - 700
+    - 850
+    - 925
+    - 1000
