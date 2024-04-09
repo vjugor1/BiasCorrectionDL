@@ -47,7 +47,7 @@ def run_zarr_load(cfg: DictConfig):#vars, years, PATH):
                 zarr_path = os.path.join(PATH, var, "{}_{}.zarr".format(var, year))
                 data_sel.to_zarr(zarr_path, mode='w')
                 
-                # data_sel = data_var.resample(time='3H').min(dim='time')
+                # data_sel = data_var.resample(time='3H').min(dim='time')s
                 # # Adjust the path and save to zarr
                 # zarr_path = os.path.join(PATH, "{}_min_{}.zarr".format(var, year))
                 # data_sel.to_zarr(zarr_path, mode='w')
@@ -63,7 +63,7 @@ def run_zarr_load(cfg: DictConfig):#vars, years, PATH):
                 zarr_path = os.path.join(PATH, var, "{}_{}.zarr".format(var, year))
                 data_sel.to_zarr(zarr_path, mode='w')
                 
-            elif var=="10m_u_component_of_wind" or var=="10m_v_component_of_wind":
+            elif var in ["10m_u_component_of_wind", "10m_v_component_of_wind", "surface_pressure"]:
                 data_sel = data_var.resample(time='3H').first()
                 # # Adjust the path and save to zarr
                 zarr_path = os.path.join(PATH, var, "{}_{}.zarr".format(var, year))

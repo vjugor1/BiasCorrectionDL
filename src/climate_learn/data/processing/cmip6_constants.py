@@ -1,5 +1,5 @@
 NAME_TO_VAR_CMIP = {
-    "geopotential": "zg",
+    "surface_pressure": "ps",
     "u_component_of_wind": "uas",
     "v_component_of_wind": "vas",
     "temperature": "ta",
@@ -14,21 +14,22 @@ SINGLE_LEVEL_VARS = [
     "air_temperature",
     "precipitation",
     "u_component_of_wind",
-    "v_component_of_wind"
+    "v_component_of_wind",
+    "surface_pressure"
 ]
 
 PRESSURE_LEVEL_VARS = [
-    "geopotential",
     "temperature",
     "specific_humidity",
 ]
 
 VAR_TO_UNIT = {
-    "air_temperature": "C",
+    "air_temperature": "K",
     "geopotential": "m^2/s^2",
     "u_component_of_wind": "m/s",
     "v_component_of_wind": "m/s",
-    "temperature": "C",
+    "temperature": "K",
+    "surface_pressure": "Pa",
     "specific_humidity": "kg/kg",
 }
 

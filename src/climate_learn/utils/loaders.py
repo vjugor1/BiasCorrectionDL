@@ -234,7 +234,7 @@ load_climatebench_module = partial(
     test_target_transform=[nn.Identity(), nn.Identity(), nn.Identity()],
 )
 
-load_downscaling_module = partial(
+load_downscaling_module  = partial(
     load_model_module,
     task="downscaling",
     train_loss="mse",
@@ -249,7 +249,7 @@ load_downscaling_module = partial(
 def load_architecture(task, data_module, architecture):
     in_vars, out_vars = get_data_variables(data_module)
     in_shape, out_shape = get_data_dims(data_module)
-
+    
     def raise_not_impl():
         raise NotImplementedError(
             f"{architecture} is not an implemented architecture for the {task}"
@@ -306,11 +306,11 @@ def load_architecture(task, data_module, architecture):
             "bilinear-interpolation",
             "nearest-interpolation",
         ):
-            if set(out_vars) != set(in_vars):
-                raise RuntimeError(
-                    "Interpolation requires the output variables to match the"
-                    " input variables."
-                )
+            # if set(out_vars) != set(in_vars):
+            #     raise RuntimeError(
+            #         "Interpolation requires the output variables to match the"
+            #         " input variables."
+            #     )
             interpolation_mode = architecture.split("-")[0]
             model = Interpolation((out_height, out_width), interpolation_mode)
             optimizer = lr_scheduler = None
@@ -319,7 +319,9 @@ def load_architecture(task, data_module, architecture):
                 backbone = ResNet(in_channels, out_channels, n_blocks=28)
             elif architecture == "unet":
                 backbone = Unet(
-                    in_channels, out_channels, ch_mults=[1, 1, 2], n_blocks=4
+                    in_channels, out_channels,
+                    ch_mults=[1, 1, 2],
+                    n_blocks=4
                 )
             elif architecture == "vit":
                 backbone = VisionTransformer(

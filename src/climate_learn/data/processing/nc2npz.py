@@ -106,14 +106,14 @@ def nc2np(path,
                 # ds.coords["lon"] = (ds.coords["lon"] + 180) % 360 - 180
                 # Align in latitude direction with era
                 # ds  = ds.sortby('lat', ascending=False)
-            # elif src=="eobs":
-            #     ds = ds.rename({'longitude': 'lon','latitude': 'lat'})
-                # ds  = ds.sortby('lat', ascending=False)
-            # ds = ds.sortby(ds.lon)
             
             if regridder!= None:
                 ds = regridder(ds, keep_attrs=True)
-            
+                
+            # cut last value if len(latitude) is odd == make it even
+            if len(ds.lat)%2!=0:
+                ds = ds.isel(lat=slice(0, len(ds.lat)//2*2))
+
             if len(ds[code].shape) == 3:  # surface level variables
                 ds[code] = ds[code].expand_dims("val", axis=1)
                 # remove the last 24 hours if this year has 366 days
@@ -273,6 +273,7 @@ def convert_nc2npz(
         ds = xr.open_mfdataset(
             ps, combine="by_coords", parallel=True
             )
+
     # create regridder and save lat/lon data
     if align_target!= None: 
         regridder, grid_out = regrid(ds, align_target)
@@ -282,7 +283,10 @@ def convert_nc2npz(
         regridder=None
         lat = np.array(ds["lat"])
         lon = np.array(ds["lon"])
-        
+    
+    # cut last value if len(latitude) is odd == make it even
+    if len(lat)%2!=0:
+        lat = lat[:-1]
     np.save(os.path.join(save_dir, "lat.npy"), lat)
     np.save(os.path.join(save_dir, "lon.npy"), lon)
         
