@@ -20,7 +20,7 @@ parser = ArgumentParser()
 parser.add_argument(
     "--default_root_dir",
     type=str,
-    default="/app/data/ClimateLearn/experiments/downscaling-ERA5-ERA5/vit_downscaling_t2_t2_single_gpu_bilinear_sched",
+    default="/app/data/ClimateLearn/experiments/downscaling-ERA5-ERA5/samvit_downscaling_t2gt_t2gt_bicubic",
 )
 parser.add_argument(
     "--era5_low_res_dir",
@@ -33,18 +33,18 @@ parser.add_argument(
     default="/app/data/ClimateLearn/processed/ERA5/2.8125",
 )
 parser.add_argument(
-    "--architecture", type=str, choices=["resnet", "unet", "vit"], default="vit"
+    "--architecture", type=str, choices=["resnet", "unet", "vit", "samvit"], default="samvit"
 )
 parser.add_argument(
     "--upsampling",
     type=str,
     choices=["bilinear", "bicubic", "unet_upsampling", "unet_upsampling_bilinear"],
-    default="bilinear",
+    default="bicubic",
 )
 parser.add_argument("--summary_depth", type=int, default=1)
 parser.add_argument("--max_epochs", type=int, default=100)
-parser.add_argument("--patience", type=int, default=5)
-parser.add_argument("--gpu", type=list, default=[0,1,2,3])
+parser.add_argument("--patience", type=int, default=20)
+parser.add_argument("--gpu", type=list, default=[0])
 parser.add_argument("--checkpoint", default=None)
 args = parser.parse_args()
 
@@ -71,6 +71,7 @@ model = load_downscaling_module(
     data_module=dm,
     architecture=args.architecture,
     upsampling=args.upsampling,
+    # model_kwargs={"neck_chans": 256},
     optim_kwargs={"lr": 5e-4},
     sched="linear-warmup-cosine-annealing",
     sched_kwargs={"warmup_epochs": 5, "max_epochs": 50},
@@ -107,7 +108,7 @@ trainer = pl.Trainer(
     devices=args.gpu,
     max_epochs=args.max_epochs,
     strategy="ddp",
-    precision="16-mixed",
+    precision="bf16-mixed",
 )
 
 # Train and evaluate model from scratch

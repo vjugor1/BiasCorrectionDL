@@ -15,6 +15,7 @@ from ..models.hub import (
     Unet,
     UnetUpsampling,
     VisionTransformer,
+    VisionTransformerSAM,
 )
 from ..models.lr_scheduler import LinearWarmupCosineAnnealingLR
 from ..transforms import TRANSFORMS_REGISTRY
@@ -338,6 +339,20 @@ def load_architecture(task, data_module, architecture, upsampling):
                     decoder_depth=1,
                     num_heads=4,
                     mlp_ratio=4,
+                )
+            elif architecture == "samvit":
+                backbone = VisionTransformerSAM(
+                    (64, 128),
+                    in_channels,
+                    out_channels,
+                    history=1,
+                    patch_size=2,
+                    embed_dim=128,
+                    depth=4,
+                    decoder_depth=1,
+                    num_heads=4,
+                    mlp_ratio=4,
+                    neck_chans=0,
                 )
             else:
                 raise_not_impl()
