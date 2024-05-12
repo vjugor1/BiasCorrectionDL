@@ -11,17 +11,17 @@ import xesmf
 
 # Local application
 from .era5_constants import (
-    DEFAULT_PRESSURE_LEVELS_ERA,
-    NAME_TO_VAR_ERA,
-    VAR_TO_NAME_ERA,
-    CONSTANTS_ERA,
+    DEFAULT_PRESSURE_LEVELS as default_pressure_levels_era,
+    NAME_TO_VAR as name_to_var_era,
+    VAR_TO_NAME as var_to_name_era,
+    CONSTANTS as constants_era
 )
 
 from .cmip6_constants import (
-    DEFAULT_PRESSURE_LEVELS_CMIP,
-    NAME_TO_VAR_CMIP,
-    VAR_TO_NAME_CMIP,
-    CONSTANTS_CMIP,
+    DEFAULT_PRESSURE_LEVELS as default_pressure_levels_cmip,
+    NAME_TO_VAR as name_to_var_cmip,
+    VAR_TO_NAME  as var_to_name_cmip,
+    CONSTANTS as constants_cmip
 )
 
 
@@ -35,22 +35,24 @@ def nc2np(path,
           frequency,
           regridder):
     if src=="era5":
-        DEFAULT_PRESSURE_LEVELS=DEFAULT_PRESSURE_LEVELS_ERA
-        NAME_TO_VAR=NAME_TO_VAR_ERA
-        VAR_TO_NAME=VAR_TO_NAME_ERA
-        CONSTANTS=CONSTANTS_ERA
+        DEFAULT_PRESSURE_LEVELS=default_pressure_levels_era
+        NAME_TO_VAR=name_to_var_era
+        VAR_TO_NAME=var_to_name_era
+        CONSTANTS=constants_era
     elif src=="cmip6":
-        DEFAULT_PRESSURE_LEVELS=DEFAULT_PRESSURE_LEVELS_CMIP
-        NAME_TO_VAR=NAME_TO_VAR_CMIP
-        VAR_TO_NAME=VAR_TO_NAME_CMIP
-        CONSTANTS=CONSTANTS_CMIP
+        DEFAULT_PRESSURE_LEVELS=default_pressure_levels_cmip
+        NAME_TO_VAR=name_to_var_cmip
+        VAR_TO_NAME=var_to_name_cmip
+        CONSTANTS=constants_cmip
 
-    assert frequency in ["3H", "D"]
+    assert frequency in ["H", "3H", "D"]
     assert src in ["era5", "cmip6", "eobs"]
     if frequency=="3H":
         OBJ_PER_YEAR = 365*8 #(3hr period yields 8 obj per day)
-    elif frequency=="D":
+    elif frequency=="H":
         OBJ_PER_YEAR = 365*24
+    elif frequency=="D":
+        OBJ_PER_YEAR = 365
 
     os.makedirs(os.path.join(save_dir, partition), exist_ok=True)
 
@@ -86,34 +88,31 @@ def nc2np(path,
 
         # non-constant fields
         for var in variables:
-            code = NAME_TO_VAR[var]
-
-            if src=="era5":
-                ps = glob.glob(os.path.join(path, var, f"*{year}.zarr"))
+            try:
+                ps = glob.glob(os.path.join(path, var, f"*.nc"))
+                ds = xr.open_mfdataset(
+                    ps, combine="by_coords", parallel=True
+                )
+            except OSError:
+                ps = glob.glob(os.path.join(path, var, f"*.zarr"))
                 ds = xr.open_mfdataset(
                     ps, combine="by_coords", parallel=True, engine="zarr"
                 )
                 ds = ds.rename({'longitude': 'lon','latitude': 'lat'})
                 ds.transpose("time", "lat", "lon", ...)
-                # ds.coords["lon"] = (ds.coords["lon"] + 180) % 360 - 180
-                
-            elif src=="cmip6":
-                ps = glob.glob(os.path.join(path, var, "*.nc"))
-                ds = xr.open_mfdataset(
-                    ps, combine="by_coords", parallel=True
-                    )
-                ds = ds.sel(time=slice(f"{year}-01-01", f"{year}-12-31"))
-                # ds.coords["lon"] = (ds.coords["lon"] + 180) % 360 - 180
-                # Align in latitude direction with era
-                # ds  = ds.sortby('lat', ascending=False)
+            ds = ds.sel(time=slice(f"{year}-01-01", f"{year}-12-31"))
+            # ds.coords["lon"] = (ds.coords["lon"] + 180) % 360 - 180
+            # Align in latitude direction with era
+            # ds  = ds.sortby('lat', ascending=False)
             
-            if regridder!= None:
+            if regridder:#!= None:
                 ds = regridder(ds, keep_attrs=True)
-                
+
             # cut last value if len(latitude) is odd == make it even
             if len(ds.lat)%2!=0:
                 ds = ds.isel(lat=slice(0, len(ds.lat)//2*2))
 
+            code=list(ds.keys())[0]  # get variable name
             if len(ds[code].shape) == 3:  # surface level variables
                 ds[code] = ds[code].expand_dims("val", axis=1)
                 # remove the last 24 hours if this year has 366 days
@@ -261,21 +260,20 @@ def convert_nc2npz(
 
     os.makedirs(save_dir, exist_ok=True)
     
-    if src=="era5":
-        ps = glob.glob(os.path.join(root_dir, variables[0], "*.zarr"))
-        ds = xr.open_mfdataset(
-            ps, combine="by_coords", parallel=True, engine="zarr"
-        )
-        ds = ds.rename({'longitude': 'lon','latitude': 'lat'})
-        
-    elif src=="cmip6":
+    try:
         ps = glob.glob(os.path.join(root_dir, variables[0], "*.nc"))
         ds = xr.open_mfdataset(
             ps, combine="by_coords", parallel=True
+        )
+    except OSError:
+        ps = glob.glob(os.path.join(root_dir, variables[0], "*.zarr"))
+        ds = xr.open_mfdataset(
+            ps, combine="by_coords", parallel=True, engine="zarr"
             )
-
+        ds = ds.rename({'longitude': 'lon','latitude': 'lat'})
+        
     # create regridder and save lat/lon data
-    if align_target!= None: 
+    if align_target: 
         regridder, grid_out = regrid(ds, align_target)
         lat = grid_out["lat"]
         lon = grid_out["lon"]

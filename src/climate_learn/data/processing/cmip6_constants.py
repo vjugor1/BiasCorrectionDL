@@ -1,4 +1,4 @@
-NAME_TO_VAR_CMIP = {
+NAME_TO_VAR = {
     "surface_pressure": "ps",
     "u_component_of_wind": "uas",
     "v_component_of_wind": "vas",
@@ -8,7 +8,7 @@ NAME_TO_VAR_CMIP = {
     "precipitation": "pr",
 }
 
-VAR_TO_NAME_CMIP = {v: k for k, v in NAME_TO_VAR_CMIP.items()}
+VAR_TO_NAME = {v: k for k, v in NAME_TO_VAR.items()}
 
 SINGLE_LEVEL_VARS = [
     "air_temperature",
@@ -33,17 +33,17 @@ VAR_TO_UNIT = {
     "specific_humidity": "kg/kg",
 }
 
-DEFAULT_PRESSURE_LEVELS_CMIP = [50, 250, 500, 600, 700, 850, 925]
+DEFAULT_PRESSURE_LEVELS = [50, 250, 500, 600, 700, 850, 925]
 
-CONSTANTS_CMIP = []
+CONSTANTS = []
 
 NAME_LEVEL_TO_VAR_LEVEL = {}
 
 for var in SINGLE_LEVEL_VARS:
-    NAME_LEVEL_TO_VAR_LEVEL[var] = NAME_TO_VAR_CMIP[var]
+    NAME_LEVEL_TO_VAR_LEVEL[var] = NAME_TO_VAR[var]
 
 for var in PRESSURE_LEVEL_VARS:
-    for l in DEFAULT_PRESSURE_LEVELS_CMIP:
-        NAME_LEVEL_TO_VAR_LEVEL[var + "_" + str(l)] = NAME_TO_VAR_CMIP[var] + "_" + str(l)
+    for l in DEFAULT_PRESSURE_LEVELS:
+        NAME_LEVEL_TO_VAR_LEVEL[var + "_" + str(l)] = NAME_TO_VAR[var] + "_" + str(l)
 
 VAR_LEVEL_TO_NAME_LEVEL = {v: k for k, v in NAME_LEVEL_TO_VAR_LEVEL.items()}

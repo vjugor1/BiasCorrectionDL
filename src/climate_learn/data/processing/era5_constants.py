@@ -1,4 +1,4 @@
-NAME_TO_VAR_ERA = {
+NAME_TO_VAR = {
     "2m_temperature": "2m_temperature",
     "10m_u_component_of_wind": "10m_u_component_of_wind",
     "10m_v_component_of_wind": "10m_v_component_of_wind",
@@ -20,7 +20,7 @@ NAME_TO_VAR_ERA = {
     "total_cloud_cover": "tcc",
 }
 
-VAR_TO_NAME_ERA = {v: k for k, v in NAME_TO_VAR_ERA.items()}
+VAR_TO_NAME = {v: k for k, v in NAME_TO_VAR.items()}
 
 SINGLE_LEVEL_VARS = [
     "2m_temperature",
@@ -68,17 +68,17 @@ VAR_TO_UNIT = {
     "potential_vorticity": "K m^2 / (kg s)",
 }
 
-DEFAULT_PRESSURE_LEVELS_ERA = [50, 250, 500, 600, 700, 850, 925]
+DEFAULT_PRESSURE_LEVELS = [50, 250, 500, 600, 700, 850, 925]
 
-CONSTANTS_ERA = ["orography", "land_sea_mask", "slt", "lattitude", "longitude"]
+CONSTANTS = ["orography", "land_sea_mask", "slt", "lattitude", "longitude"]
 
 NAME_LEVEL_TO_VAR_LEVEL = {}
 
 for var in SINGLE_LEVEL_VARS:
-    NAME_LEVEL_TO_VAR_LEVEL[var] = NAME_TO_VAR_ERA[var]
+    NAME_LEVEL_TO_VAR_LEVEL[var] = NAME_TO_VAR[var]
 
 for var in PRESSURE_LEVEL_VARS:
-    for l in DEFAULT_PRESSURE_LEVELS_ERA:
-        NAME_LEVEL_TO_VAR_LEVEL[var + "_" + str(l)] = NAME_TO_VAR_ERA[var] + "_" + str(l)
+    for l in DEFAULT_PRESSURE_LEVELS:
+        NAME_LEVEL_TO_VAR_LEVEL[var + "_" + str(l)] = NAME_TO_VAR[var] + "_" + str(l)
 
 VAR_LEVEL_TO_NAME_LEVEL = {v: k for k, v in NAME_LEVEL_TO_VAR_LEVEL.items()}
