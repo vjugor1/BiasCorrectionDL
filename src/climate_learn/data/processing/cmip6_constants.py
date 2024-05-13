@@ -1,32 +1,35 @@
 NAME_TO_VAR = {
-    "geopotential": "zg",
-    "u_component_of_wind": "u",
-    "v_component_of_wind": "v",
+    "surface_pressure": "ps",
+    "u_component_of_wind": "uas",
+    "v_component_of_wind": "vas",
     "temperature": "ta",
     "specific_humidity": "hus",
     "air_temperature": "tas",
+    "precipitation": "pr",
 }
 
 VAR_TO_NAME = {v: k for k, v in NAME_TO_VAR.items()}
 
 SINGLE_LEVEL_VARS = [
     "air_temperature",
+    "precipitation",
+    "u_component_of_wind",
+    "v_component_of_wind",
+    "surface_pressure"
 ]
 
 PRESSURE_LEVEL_VARS = [
-    "geopotential",
-    "u_component_of_wind",
-    "v_component_of_wind",
     "temperature",
     "specific_humidity",
 ]
 
 VAR_TO_UNIT = {
-    "air_temperature": "C",
+    "air_temperature": "K",
     "geopotential": "m^2/s^2",
     "u_component_of_wind": "m/s",
     "v_component_of_wind": "m/s",
-    "temperature": "C",
+    "temperature": "K",
+    "surface_pressure": "Pa",
     "specific_humidity": "kg/kg",
 }
 

@@ -1,0 +1,2 @@
+save_path: '/app/data/era5_3h'
+processed_path: '/app/data/cmip6_processed'
