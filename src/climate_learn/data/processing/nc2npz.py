@@ -219,6 +219,23 @@ def nc2np(path,
 
 
 def regrid(ds_in, align_target):
+    """
+    Regrids an input dataset to match the resolution of a target grid. 
+
+    Parameters:
+    - ds_in (xarray.Dataset): The input dataset to be regridded.
+    - align_target (str): The directory path where the target grid files are stored.
+
+    Returns:
+    - regridder (xesmf.Regridder): A regridder object configured to regrid from the input
+      dataset's grid to the target grid.
+    - grid_out (dict): The output grid coordinates as a dictionary with keys 'lon' and 'lat'.
+
+    Note:
+    - This function currently assumes the target grid files are in '.zarr' format and
+      hardcoded to subsample every fourth point (e.g., [::4]). This may need to be adjusted
+      based on specific requirements or more flexible grid handling.
+    """
     ps1 = glob.glob(os.path.join(align_target, "*"))
     ps2 = glob.glob(os.path.join(align_target, ps1[0], "*.zarr"))
     ds = xr.open_mfdataset(
