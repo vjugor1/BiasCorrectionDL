@@ -5,7 +5,7 @@ import warnings
 
 # Local application
 from ..data import IterDataModule
-from ..models import LitModule, MODEL_REGISTRY
+from ..models import LitModule, DiffusionLitModule, MODEL_REGISTRY
 from ..models.hub import (
     Climatology,
     Interpolation,
@@ -15,6 +15,7 @@ from ..models.hub import (
     Unet,
     UnetUpsampling,
     VisionTransformer,
+    GaussianDiffusion
 )
 from ..models.lr_scheduler import LinearWarmupCosineAnnealingLR
 from ..transforms import TRANSFORMS_REGISTRY
@@ -200,17 +201,30 @@ def load_model_module(
             " or None"
         )
     # Instantiate Lightning Module
-    model_module = LitModule(
-        model,
-        optimizer,
-        lr_scheduler,
-        train_loss,
-        val_losses,
-        test_losses,
-        train_transform,
-        val_transforms,
-        test_transforms,
-    )
+    if architecture == 'diffusion':
+        model_module = DiffusionLitModule(
+            model,
+            optimizer,
+            lr_scheduler,
+            train_loss,
+            val_losses,
+            test_losses,
+            train_transform,
+            val_transforms,
+            test_transforms,
+        )
+    else:
+        model_module = LitModule(
+            model,
+            optimizer,
+            lr_scheduler,
+            train_loss,
+            val_losses,
+            test_losses,
+            train_transform,
+            val_transforms,
+            test_transforms,
+        )
     return model_module
 
 
@@ -338,6 +352,17 @@ def load_architecture(task, data_module, architecture, upsampling):
                     decoder_depth=1,
                     num_heads=4,
                     mlp_ratio=4,
+                )
+            elif architecture == "diffusion":
+                backbone = GaussianDiffusion(
+                    in_channels,
+                    out_channels,
+                    out_height,
+                    out_width,
+                    history=1,
+                    timesteps=1000,
+                    # loss_type='l1',
+                    beta_schedule='cosine'
                 )
             else:
                 raise_not_impl()

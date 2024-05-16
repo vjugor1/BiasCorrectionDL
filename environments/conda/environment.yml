@@ -42,3 +42,5 @@ dependencies:
     - climate-learn==1.0.0
     - optuna==3.6.0
     - opencv-python==4.9.0.80
+    - einops==0.7.0
+    - rich==13.7.1

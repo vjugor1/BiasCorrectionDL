@@ -1,9 +1,6 @@
 # Standard library
 from argparse import ArgumentParser
 
-# Third party
-import torch
-from src.climate_learn import LitModule, IterDataModule, load_downscaling_module
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import (
     EarlyStopping,
@@ -14,14 +11,24 @@ from pytorch_lightning.callbacks import (
 )
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 
+# Third party
+import torch
+from pytorch_lightning.callbacks import RichModelSummary, RichProgressBar
+
+from src.climate_learn import load_downscaling_module
+from src.climate_learn.data import IterDataModule
+from src.climate_learn.models.module import DiffusionLitModule
+
 torch.set_float32_matmul_precision("medium")
 
 parser = ArgumentParser()
+
 parser.add_argument(
     "--default_root_dir",
     type=str,
-    default="/app/data/ClimateLearn/experiments/downscaling-ERA5-ERA5/vit_downscaling_t2_t2_single_gpu_bilinear_sched",
+    default="/app/data/ClimateLearn/experiments/downscaling-ERA5-ERA5/diff_downscaling_era5_era5_initial_run",
 )
+
 parser.add_argument(
     "--era5_low_res_dir",
     type=str,
@@ -33,25 +40,27 @@ parser.add_argument(
     default="/app/data/ClimateLearn/processed/ERA5/2.8125",
 )
 parser.add_argument(
-    "--architecture", type=str, choices=["resnet", "unet", "vit"], default="unet"
+    "--architecture", type=str, choices=["resnet", "unet", "vit", "diffusion"], default="diffusion"
 )
 parser.add_argument(
     "--upsampling",
     type=str,
-    choices=["bilinear", "bicubic", "unet_upsampling", "unet_upsampling_bilinear"],
-    default="bilinear",
+    choices=["none", "bilinear", "bicubic", "unet_upsampling", "unet_upsampling_bilinear"],
+    default="none",
 )
 parser.add_argument("--summary_depth", type=int, default=1)
 parser.add_argument("--max_epochs", type=int, default=100)
 parser.add_argument("--patience", type=int, default=5)
-parser.add_argument("--gpu", type=list, default=[0])
+parser.add_argument("--gpu", type=list, default=[1]) #[0,1,2,3]
 parser.add_argument("--checkpoint", default=None)
 args = parser.parse_args()
 
-
 # Set up data
-in_vars = ["2m_temperature", "temperature_850", "geopotential_500"]
-out_vars = ["2m_temperature", "temperature_850", "geopotential_500"]
+in_vars = out_vars = [
+    "2m_temperature",
+    "geopotential_500",
+    "temperature_850",
+]
 
 dm = IterDataModule(
     task="downscaling",
@@ -60,13 +69,13 @@ dm = IterDataModule(
     in_vars=in_vars,
     out_vars=out_vars,
     subsample=1,
-    batch_size=256,
+    batch_size=128,
     buffer_size=10000,
     num_workers=4,
 )
 dm.setup()
 
-# Set up deep learning model
+# Set up model
 model = load_downscaling_module(
     data_module=dm,
     architecture=args.architecture,
@@ -116,7 +125,7 @@ if args.checkpoint is None:
     trainer.test(model, datamodule=dm, ckpt_path="best")
 # Evaluate saved model checkpoint
 else:
-    model = LitModule.load_from_checkpoint(
+    model = DiffusionLitModule.load_from_checkpoint(
         args.checkpoint,
         net=model.net,
         optimizer=model.optimizer,

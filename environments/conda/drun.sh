@@ -15,7 +15,7 @@ GPUS="device=0,1,2,3,4,5"
 CONTAINER_NAME="$(id -un)-corrector_1"
 PROJECT_DIR="/home/$(id -un)/BiasCorrectionDL"
 DATA_DIR="/mnt/ssd/bias_correction"
-IMAGE_NAME="d.tanyushkina/bias:3.0"
+IMAGE_NAME="s.lukashevich/bias:3.0"
 WANDB_DIR="/app/out"
 
 # Run the Docker container
