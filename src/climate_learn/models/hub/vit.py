@@ -20,7 +20,7 @@ class VisionTransformer(nn.Module):
         patch_size=16,
         drop_path=0.1,
         drop_rate=0.1,
-        learn_pos_emb=False,
+        learn_pos_emb=True,
         embed_dim=1024,
         depth=24,
         decoder_depth=8,

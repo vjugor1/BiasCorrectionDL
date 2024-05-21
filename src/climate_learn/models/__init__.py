@@ -1,2 +1,2 @@
-from .module import LitModule
+from .module import LitModule, YnetLitModule
 from .hub import MODEL_REGISTRY

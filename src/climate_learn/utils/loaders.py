@@ -4,8 +4,9 @@ from functools import partial
 import warnings
 
 # Local application
+from .gis import prepare_ynet_climatology
 from ..data import IterDataModule
-from ..models import LitModule, MODEL_REGISTRY
+from ..models import YnetLitModule, LitModule, MODEL_REGISTRY
 from ..models.hub import (
     Climatology,
     Interpolation,
@@ -16,6 +17,7 @@ from ..models.hub import (
     UnetUpsampling,
     VisionTransformer,
     VisionTransformerSAM,
+    YNet30
 )
 from ..models.lr_scheduler import LinearWarmupCosineAnnealingLR
 from ..transforms import TRANSFORMS_REGISTRY
@@ -44,6 +46,7 @@ def load_model_module(
     train_target_transform: Optional[Union[str, Callable]] = None,
     val_target_transform: Optional[Iterable[Union[str, Callable]]] = None,
     test_target_transform: Optional[Iterable[Union[str, Callable]]] = None,
+    path_to_elevation: Optional[str] = "/app/data/elevation.nc",
 ):
     # Temporary fix, per this discussion:
     # https://github.com/aditya-grover/climate-learn/pull/100#discussion_r1192812343
@@ -201,17 +204,34 @@ def load_model_module(
             " or None"
         )
     # Instantiate Lightning Module
-    model_module = LitModule(
-        model,
-        optimizer,
-        lr_scheduler,
-        train_loss,
-        val_losses,
-        test_losses,
-        train_transform,
-        val_transforms,
-        test_transforms,
-    )
+    if architecture == "ynet":
+        normalized_clim = prepare_ynet_climatology(data_module, path_to_elevation, out_vars)
+        
+        model_module = YnetLitModule(
+            model,
+            optimizer,
+            lr_scheduler,
+            train_loss,
+            val_losses,
+            test_losses,
+            train_transform,
+            val_transforms,
+            test_transforms,
+            normalized_clim,
+        )
+    else:
+        model_module = LitModule(
+            model,
+            optimizer,
+            lr_scheduler,
+            train_loss,
+            val_losses,
+            test_losses,
+            train_transform,
+            val_transforms,
+            test_transforms,
+        )
+
     return model_module
 
 
@@ -243,10 +263,10 @@ load_downscaling_module  = partial(
     upsampling="bilinear",
     train_loss="mse",
     val_loss=["rmse", "pearson", "mean_bias", "mse"],
-    test_loss=["rmse", "pearson", "mean_bias", "mse"],
+    test_loss=["rmse", "pearson", "mean_bias"],
     train_target_transform=None,
     val_target_transform=["denormalize", "denormalize", "denormalize", None],
-    test_target_transform=["denormalize", "denormalize", "denormalize", None],
+    test_target_transform=["denormalize", "denormalize", "denormalize"],
 )
 
 
@@ -311,11 +331,11 @@ def load_architecture(task, data_module, architecture, upsampling):
             "bicubic-interpolation",
             "nearest-interpolation",
         ):
-            # if set(out_vars) != set(in_vars):
-            #     raise RuntimeError(
-            #         "Interpolation requires the output variables to match the"
-            #         " input variables."
-            #     )
+            if set(out_vars) != set(in_vars):
+                raise RuntimeError(
+                    "Interpolation requires the output variables to match the"
+                    " input variables."
+                )
             interpolation_mode = architecture.split("-")[0]
             model = Interpolation((out_height, out_width), interpolation_mode)
             optimizer = lr_scheduler = None
@@ -355,6 +375,11 @@ def load_architecture(task, data_module, architecture, upsampling):
                     num_heads=4,
                     mlp_ratio=4,
                     neck_chans=0,
+                )
+            elif architecture == "ynet":
+                backbone = YNet30(
+                    in_channels,
+                    out_channels,
                 )
             else:
                 raise_not_impl()

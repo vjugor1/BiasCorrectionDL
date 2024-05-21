@@ -8,3 +8,4 @@ from .unet import Unet
 from .utils import MODEL_REGISTRY
 from .vit import VisionTransformer
 from .samvit import VisionTransformerSAM
+from .ynet import YNet30

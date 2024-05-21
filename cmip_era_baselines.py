@@ -1,40 +1,78 @@
 # Standard library
 from argparse import ArgumentParser
+
+# Third party
+import torch
+from pytorch_lightning.callbacks import RichModelSummary, RichProgressBar
 import pytorch_lightning as pl
 
-from src.climate_learn.utils import load_downscaling_module
-from src.climate_learn import convert_nc2npz, IterDataModule
+from src.climate_learn import load_downscaling_module
+from src.climate_learn.data import IterDataModule
+
+torch.set_float32_matmul_precision("medium")
 
 parser = ArgumentParser()
-parser.add_argument("inp_root_dir")
-parser.add_argument("out_root_dir")
-parser.add_argument("in_vars")
-parser.add_argument("out_vars")
+parser.add_argument(
+    "--era5_low_res_dir",
+    type=str,
+    default="/app/data/climatedata/processed/era5_0.25deg/3H",
+)
+parser.add_argument(
+    "--era5_high_res_dir",
+    type=str,
+    default="/app/data/climatedata/processed/cmip6/3H",
+)
+parser.add_argument(
+    "--in_vars",
+    type=list,
+    default=[
+        "air_temperature",
+        "u_component_of_wind",
+        "v_component_of_wind",
+        "surface_pressure",
+    ],  # ["2m_temperature","geopotential_500","temperature_850"]
+)
 args = parser.parse_args()
 
 # Set up data
+in_vars = out_vars = args.in_vars
+
+# Set up data
 dm = IterDataModule(
-    task="downscaling"
-    inp_root_dir = args.inp_root_dir,
-    out_root_dir = args.out_root_dir,
-    in_vars = args.in_vars,
-    out_vars = args.out_vars,
+    task="downscaling",
+    inp_root_dir=args.era5_low_res_dir,
+    out_root_dir=args.era5_high_res_dir,
+    in_vars=in_vars,
+    out_vars=out_vars,
     batch_size=256,
     num_workers=4,
 )
 dm.setup()
 
 # Set up baseline models
-nearest = load_downscaling_module(
-    data_module=dm,
-    architecture="nearest-interpolation",
-)
+nearest = load_downscaling_module(data_module=dm, architecture="nearest-interpolation")
 bilinear = load_downscaling_module(
-    data_module=dm,
-    architecture="bilinear-interpolation",
+    data_module=dm, architecture="bilinear-interpolation"
+)
+bicubic = load_downscaling_module(data_module=dm, architecture="bicubic-interpolation")
+
+callbacks = [
+    RichProgressBar(),
+    RichModelSummary(max_depth=1),
+]
+# Evaluate baselines (no training needed)
+trainer = pl.Trainer(
+    accelerator="cpu",
+    callbacks=callbacks,
 )
 
-# Evaluate baselines (no training needed)
-trainer = pl.Trainer()
-trainer.test(nearest, dm)
-trainer.test(bilinear, dm)
+# Perform validation and testing for each model
+for model, model_name in zip(
+    [nearest, bilinear, bicubic],
+    ["nearest-interpolation", "bilinear-interpolation", "bicubic-interpolation"],
+):
+    print("Validating model:", model_name)
+    trainer.validate(model, dataloaders=dm)
+
+    print("Testing model:", model_name)
+    trainer.test(model, dataloaders=dm)

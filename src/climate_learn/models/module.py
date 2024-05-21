@@ -2,7 +2,7 @@
 from typing import Callable, List, Optional, Tuple, Union
 
 # Local application
-from ..data.processing.era5_constants import CONSTANTS_ERA
+from ..data.processing.era5_constants import CONSTANTS
 
 # Third party
 import torch
@@ -59,7 +59,7 @@ class LitModule(pl.LightningModule):
     def replace_constant(self, y, yhat, out_variables):
         for i in range(yhat.shape[1]):
             # if constant replace with ground-truth value
-            if out_variables[i] in CONSTANTS_ERA:
+            if out_variables[i] in CONSTANTS:
                 yhat[:, i] = y[:, i]
         return yhat
 
@@ -93,7 +93,8 @@ class LitModule(pl.LightningModule):
             prog_bar=True,
             on_step=True,
             on_epoch=False,
-            batch_size=x.shape[0],
+            sync_dist=True,
+            batch_size=len(batch[0]),
         )
         return loss
 
@@ -129,25 +130,34 @@ class LitModule(pl.LightningModule):
         else:
             raise RuntimeError("Invalid evaluation stage")
         loss_dict = {}
-        for i, lf in enumerate(loss_fns):
+        for i, loss_fn in enumerate(loss_fns):
+            # Apply the corresponding transformation if available
             if transforms is not None and transforms[i] is not None:
-                yhat_ = transforms[i](yhat)
-                y_ = transforms[i](y)
-            losses = lf(yhat_, y_)
-            loss_name = getattr(lf, "name", f"loss_{i}")
-            if losses.dim() == 0: # aggregate loss
+                yhat_transformed = transforms[i](yhat)
+                y_transformed = transforms[i](y)
+            else:
+                yhat_transformed = yhat
+                y_transformed = y
+            
+            # Calculate the losses
+            losses = loss_fn(yhat_transformed, y_transformed)
+            loss_name = getattr(loss_fn, "name", f"loss_{i}")
+
+            # Check if the losses are aggregated or per channel
+            if losses.dim() == 0:  # Aggregate loss
                 loss_dict[f"{stage}/{loss_name}:aggregate"] = losses
-            else:  # per channel + aggregate
+            else:  # Per channel + aggregate loss
                 for var_name, loss in zip(out_variables, losses):
                     loss_dict[f"{stage}/{loss_name}:{var_name}"] = loss
+                # Add the aggregate loss
                 loss_dict[f"{stage}/{loss_name}:aggregate"] = losses[-1]
         self.log_dict(
-            loss_dict,
-            prog_bar=True,
-            on_step=False,
-            on_epoch=True,
-            sync_dist=True,
-            batch_size=len(batch[0]),
+        loss_dict,
+        prog_bar=True,
+        on_step=False,
+        on_epoch=True,
+        sync_dist=True,
+        batch_size=len(batch[0]),
         )
         return loss_dict
 
@@ -216,3 +226,31 @@ class LitModule(pl.LightningModule):
         else:
             scheduler = self.lr_scheduler
         return {"optimizer": self.optimizer, "lr_scheduler": scheduler}
+
+
+class YnetLitModule(LitModule):
+    def __init__(
+        self,
+        net: torch.nn.Module,
+        optimizer: torch.optim.Optimizer,
+        lr_scheduler: LRScheduler,
+        train_loss: Callable,
+        val_loss: List[Callable],
+        test_loss: List[Callable],
+        train_target_transform: Optional[Callable] = None,
+        val_target_transforms: Optional[List[Union[Callable, None]]] = None,
+        test_target_transforms: Optional[List[Union[Callable, None]]] = None,
+        x_aux: Optional[List[Union[torch.Tensor, None]]] = None,
+    ):
+        super().__init__(net, optimizer, lr_scheduler,
+                         train_loss, val_loss, test_loss,
+                         train_target_transform, val_target_transforms,
+                         test_target_transforms)
+        self.x_aux = x_aux
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        if self.x_aux is not None:
+            x_aux_expanded = self.x_aux.to(x.dtype).to(x.device)
+            x_aux_expanded = x_aux_expanded.unsqueeze(0).expand(x.size(0), *self.x_aux.size())
+            return self.net(x, x_aux_expanded)
+        return self.net(x)
