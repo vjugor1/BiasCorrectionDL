@@ -6,6 +6,13 @@ from .utils import register
 
 @register("ynet")
 class YNet30(nn.Module):
+    """
+    YNet30 architecture adapted from [1].
+    YNet30 is a deep learning model tailored for downscaling applications with climatology integration.
+
+    References:
+    [1]: https://github.com/yuminliu/Downscaling
+    """
     def __init__(
         self,
         in_channels,
