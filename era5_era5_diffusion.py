@@ -28,7 +28,7 @@ parser = ArgumentParser()
 parser.add_argument(
     "--default_root_dir",
     type=str,
-    default="/app/data/ClimateLearn/experiments/downscaling-ERA5-ERA5/diff_downscaling_era5_era5_many_to_few_run",
+    default="/app/data/experiments/downscaling-ERA5-ERA5/diff_downscaling_era5_era5_many_to_few_run",
 )
 
 parser.add_argument(
@@ -61,7 +61,7 @@ parser.add_argument(
 parser.add_argument("--summary_depth", type=int, default=1)
 parser.add_argument("--max_epochs", type=int, default=100)
 parser.add_argument("--patience", type=int, default=7)
-parser.add_argument("--gpu", type=list, default=[0, 1, 2, 3, 4, 5]) #[0, 1, 2, 3, 4, 5]
+parser.add_argument("--gpu", type=list, default=[0]) #[0, 1, 2, 3, 4, 5]
 parser.add_argument("--checkpoint", default=None)
 args = parser.parse_args()
 
@@ -105,7 +105,7 @@ dm = IterDataModule(
     subsample=1,
     batch_size=64,
     buffer_size=10000,
-    num_workers=4,
+    num_workers=1,
 )
 dm.setup()
 

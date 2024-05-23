@@ -2,7 +2,7 @@
 from typing import Callable, List, Optional, Tuple, Union
 
 # Local application
-from ..data.processing.era5_constants import CONSTANTS_ERA
+from ..data.processing.era5_constants import CONSTANTS
 
 # Third party
 import torch
