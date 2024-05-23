@@ -237,7 +237,7 @@ class DiffusionLitModule(LitModule):
         #upscaler in net
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x_lr = x
-        x_lr_up = self.net.upscaler(x_lr)
+        x_lr_up = self.net.upscaler(x_lr[...,:self.net.rrdb.conv_last.out_channels,:, :]) #self.rrdb.conv_last.out_channels == len(out_variables)
         img_out, *_ = self.net.sample(x_lr, x_lr_up) #delete shape argument from diffusion!!!
         return img_out
 

@@ -360,7 +360,7 @@ def load_architecture(task, data_module, architecture, upsampling):
                     out_height,
                     out_width,
                     history=1,
-                    timesteps=1000,
+                    timesteps=100,
                     # loss_type='l1',
                     beta_schedule='cosine'
                 )
