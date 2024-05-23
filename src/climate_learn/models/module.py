@@ -238,7 +238,7 @@ class DiffusionLitModule(LitModule):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x_lr = x
         x_lr_up = self.net.upscaler(x_lr[...,:self.net.rrdb.conv_last.out_channels,:, :]) #self.rrdb.conv_last.out_channels == len(out_variables)
-        img_out, *_ = self.net.sample(x_lr, x_lr_up) #delete shape argument from diffusion!!!
+        img_out, *_ = self.net.sample(x_lr, x_lr_up) 
         return img_out
 
     def training_step(
@@ -246,7 +246,7 @@ class DiffusionLitModule(LitModule):
         batch: Tuple[torch.Tensor, torch.Tensor, List[str], List[str]],
     ) -> torch.Tensor:
         x, y, in_variables, out_variables = batch
-        # this is SRDiff.forward, delete forward from SRDiff
+        
         img_hr = y
         img_lr = x
         img_lr_up = self.net.upscaler(img_lr[...,:len(out_variables),:,:]) #extracting hr channels
@@ -265,15 +265,13 @@ class DiffusionLitModule(LitModule):
             rrdb_out = img_lr_up
             cond = img_lr
         x = self.net.img2res(x, img_lr_up)
-        # p_losses, x_tp1, noise_pred, x_t, x_t_gt, x_0 = self.p_losses(x, t, cond, img_lr_up) #what is that noise=None argument?
+
         x_start = x
         noise = torch.randn_like(x_start)
         x_tp1_gt = self.net.q_sample(x_start=x_start, t=t, noise=noise)
-        # x_t_gt = self.net.q_sample(x_start=x_start, t=t - 1, noise=noise)
         noise_pred = self.net.denoise_fn(x_tp1_gt, t, cond, img_lr_up)
-        # x_t_pred, x0_pred = self.net.p_sample(x_tp1_gt, t, cond, img_lr_up, noise_pred=noise_pred)
 
-        #!!!better to do that moment using train_loss attribute
+        
         loss = self.train_loss(noise_pred, noise)
         # if self.net.loss_type == 'l1':
         #     loss = (noise - noise_pred).abs().mean()
@@ -294,26 +292,7 @@ class DiffusionLitModule(LitModule):
                 loss += loss_dict['train/aux_ssim']
             # if hparams['aux_percep_loss']:
             #     loss_dict['aux_percep'] = self.percep_loss_fn[0](img_hr, rrdb_out)
-        # # x_recon = self.res2img(x_recon, img_lr_up)
-        # x_tp1 = self.res2img(x_tp1, img_lr_up)
-        # x_t = self.res2img(x_t, img_lr_up)
-        # x_t_gt = self.res2img(x_t_gt, img_lr_up)
-        # yhat = self(x).to(device=y.device)
-        # yhat = self.replace_constant(y, yhat, out_variables)
-        # if self.train_target_transform:
-        #     yhat = self.train_target_transform(yhat)
-        #     y = self.train_target_transform(y)
-        # losses = self.train_loss(yhat, y)
-        # loss_name = getattr(self.train_loss, "name", "loss")
-        # loss_dict = {}
-        # if losses.dim() == 0:  # aggregate loss only
-        #     loss = losses
-        #     loss_dict[f"train/{loss_name}:aggregate"] = loss
-        # else:  # per channel + aggregate
-        #     for var_name, loss in zip(out_variables, losses):
-        #         loss_dict[f"train/{loss_name}:{var_name}"] = loss
-        #     loss = losses[-1]
-        #     loss_dict[f"train/{loss_name}:aggregate"] = loss
+        
         self.log_dict(
             loss_dict,
             prog_bar=True,

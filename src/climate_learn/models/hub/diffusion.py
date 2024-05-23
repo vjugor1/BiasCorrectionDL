@@ -182,55 +182,6 @@ class GaussianDiffusion(nn.Module):
         model_mean, posterior_variance, posterior_log_variance = self.q_posterior(x_start=x_recon, x_t=x, t=t)
         return model_mean, posterior_variance, posterior_log_variance, x_recon
 
-    # def forward(self, img_hr, img_lr, img_lr_up, t=None, *args, **kwargs):
-    #     x = img_hr
-    #     b, *_, device = *x.shape, x.device
-    #     t = torch.randint(0, self.num_timesteps, (b,), device=device).long() \
-    #         if t is None else torch.LongTensor([t]).repeat(b).to(device)
-    #     if self.use_rrdb:
-    #         if self.fix_rrdb:
-    #             self.rrdb.eval()
-    #             with torch.no_grad():
-    #                 rrdb_out, cond = self.rrdb(img_lr, True)
-    #         else:
-    #             rrdb_out, cond = self.rrdb(img_lr, True)
-    #     else:
-    #         rrdb_out = img_lr_up
-    #         cond = img_lr
-    #     x = self.img2res(x, img_lr_up)
-    #     p_losses, x_tp1, noise_pred, x_t, x_t_gt, x_0 = self.p_losses(x, t, cond, img_lr_up, *args, **kwargs)
-    #     ret = {'q': p_losses}
-    #     if not self.fix_rrdb:
-    #         if self.aux_l1_loss:
-    #             ret['aux_l1'] = F.l1_loss(rrdb_out, img_hr)
-    #         if self.aux_ssim_loss:
-    #             ret['aux_ssim'] = 1 - self.ssim_loss(rrdb_out, img_hr)
-    #         # if hparams['aux_percep_loss']:
-    #         #     ret['aux_percep'] = self.percep_loss_fn[0](img_hr, rrdb_out)
-    #     # x_recon = self.res2img(x_recon, img_lr_up)
-    #     x_tp1 = self.res2img(x_tp1, img_lr_up)
-    #     x_t = self.res2img(x_t, img_lr_up)
-    #     x_t_gt = self.res2img(x_t_gt, img_lr_up)
-    #     return ret, (x_tp1, x_t_gt, x_t), t
-
-    # def p_losses(self, x_start, t, cond, img_lr_up, noise=None):
-    #     noise = default(noise, lambda: torch.randn_like(x_start))
-    #     x_tp1_gt = self.q_sample(x_start=x_start, t=t, noise=noise)
-    #     x_t_gt = self.q_sample(x_start=x_start, t=t - 1, noise=noise)
-    #     noise_pred = self.denoise_fn(x_tp1_gt, t, cond, img_lr_up)
-    #     x_t_pred, x0_pred = self.p_sample(x_tp1_gt, t, cond, img_lr_up, noise_pred=noise_pred)
-
-    #     if self.loss_type == 'l1':
-    #         loss = (noise - noise_pred).abs().mean()
-    #     elif self.loss_type == 'l2':
-    #         loss = F.mse_loss(noise, noise_pred)
-    #     elif self.loss_type == 'ssim':
-    #         loss = (noise - noise_pred).abs().mean()
-    #         loss = loss + (1 - self.ssim_loss(noise, noise_pred))
-    #     else:
-    #         raise NotImplementedError()
-    #     return loss, x_tp1_gt, noise_pred, x_t_pred, x_t_gt, x0_pred
-
     def q_sample(self, x_start, t, noise=None):
         noise = default(noise, lambda: torch.randn_like(x_start))
         t_cond = (t[:, None, None, None] >= 0).float()
