@@ -136,6 +136,7 @@ results/
 lightning_logs/
 models/outputs/
 !src/climate_learn/data/
+outputs/
 
 # files
 # .gitignore

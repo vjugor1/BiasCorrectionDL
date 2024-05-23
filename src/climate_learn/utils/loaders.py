@@ -4,8 +4,9 @@ from functools import partial
 import warnings
 
 # Local application
+from .gis import prepare_ynet_climatology, prepare_deepsd_elevation
 from ..data import IterDataModule
-from ..models import LitModule, DiffusionLitModule, MODEL_REGISTRY
+from ..models import LitModule, DiffusionLitModule, DeepSDLitModule, YnetLitModule, MODEL_REGISTRY
 from ..models.hub import (
     Climatology,
     Interpolation,
@@ -15,7 +16,11 @@ from ..models.hub import (
     Unet,
     UnetUpsampling,
     VisionTransformer,
-    GaussianDiffusion
+    VisionTransformerSAM,
+    GaussianDiffusion,
+    YNet30,
+    DeepSD,
+    
 )
 from ..models.lr_scheduler import LinearWarmupCosineAnnealingLR
 from ..transforms import TRANSFORMS_REGISTRY
@@ -44,6 +49,7 @@ def load_model_module(
     train_target_transform: Optional[Union[str, Callable]] = None,
     val_target_transform: Optional[Iterable[Union[str, Callable]]] = None,
     test_target_transform: Optional[Iterable[Union[str, Callable]]] = None,
+    path_to_elevation: Optional[str] = "/app/data/elevation.nc",
 ):
     # Temporary fix, per this discussion:
     # https://github.com/aditya-grover/climate-learn/pull/100#discussion_r1192812343
@@ -213,6 +219,36 @@ def load_model_module(
             val_transforms,
             test_transforms,
         )
+    elif architecture == "ynet":
+        normalized_clim = prepare_ynet_climatology(data_module, path_to_elevation, out_vars)
+        
+        model_module = YnetLitModule(
+            model,
+            optimizer,
+            lr_scheduler,
+            train_loss,
+            val_losses,
+            test_losses,
+            train_transform,
+            val_transforms,
+            test_transforms,
+            normalized_clim,
+        )
+    elif architecture == "deepsd":
+        elevation_list = prepare_deepsd_elevation(data_module, path_to_elevation)
+        
+        model_module = DeepSDLitModule(
+            model,
+            optimizer,
+            lr_scheduler,
+            train_loss,
+            val_losses,
+            test_losses,
+            train_transform,
+            val_transforms,
+            test_transforms,
+            elevation_list,
+        )
     else:
         model_module = LitModule(
             model,
@@ -256,10 +292,10 @@ load_downscaling_module  = partial(
     upsampling="bilinear",
     train_loss="mse",
     val_loss=["rmse", "pearson", "mean_bias", "mse"],
-    test_loss=["rmse", "pearson", "mean_bias", "mse"],
+    test_loss=["rmse", "pearson", "mean_bias"],
     train_target_transform=None,
     val_target_transform=["denormalize", "denormalize", "denormalize", None],
-    test_target_transform=["denormalize", "denormalize", "denormalize", None],
+    test_target_transform=["denormalize", "denormalize", "denormalize"],
 )
 
 
@@ -324,11 +360,11 @@ def load_architecture(task, data_module, architecture, upsampling):
             "bicubic-interpolation",
             "nearest-interpolation",
         ):
-            # if set(out_vars) != set(in_vars):
-            #     raise RuntimeError(
-            #         "Interpolation requires the output variables to match the"
-            #         " input variables."
-            #     )
+            if set(out_vars) != set(in_vars):
+                raise RuntimeError(
+                    "Interpolation requires the output variables to match the"
+                    " input variables."
+                )
             interpolation_mode = architecture.split("-")[0]
             model = Interpolation((out_height, out_width), interpolation_mode)
             optimizer = lr_scheduler = None
@@ -364,7 +400,30 @@ def load_architecture(task, data_module, architecture, upsampling):
                     history=1,
                     timesteps=100,
                     # loss_type='l1',
-                    beta_schedule='cosine'
+                    beta_schedule='cosine')
+            elif architecture == "samvit":
+                backbone = VisionTransformerSAM(
+                    (64, 128),
+                    in_channels,
+                    out_channels,
+                    history=1,
+                    patch_size=2,
+                    embed_dim=128,
+                    depth=4,
+                    decoder_depth=1,
+                    num_heads=4,
+                    mlp_ratio=4,
+                    neck_chans=0,
+                )
+            elif architecture == "ynet":
+                backbone = YNet30(
+                    in_channels,
+                    out_channels,
+                )
+            elif architecture == "deepsd":
+                backbone = DeepSD(
+                    in_channels,
+                    out_channels,
                 )
             else:
                 raise_not_impl()
