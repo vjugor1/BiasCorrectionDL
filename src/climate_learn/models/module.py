@@ -227,6 +227,90 @@ class LitModule(pl.LightningModule):
             scheduler = self.lr_scheduler
         return {"optimizer": self.optimizer, "lr_scheduler": scheduler}
 
+class DiffusionLitModule(LitModule):
+    def __init__(
+        self,
+        net: torch.nn.Module,
+        optimizer: torch.optim.Optimizer,
+        lr_scheduler: LRScheduler,
+        train_loss: Callable,
+        val_loss: List[Callable],
+        test_loss: List[Callable],
+        train_target_transform: Optional[Callable] = None,
+        val_target_transforms: Optional[List[Union[Callable, None]]] = None,
+        test_target_transforms: Optional[List[Union[Callable, None]]] = None,
+    ):
+        super().__init__(net, optimizer, lr_scheduler,
+                         train_loss, val_loss, test_loss,
+                         train_target_transform, val_target_transforms,
+                         test_target_transforms)
+        #upscaler in net
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x_lr = x
+        x_lr_up = self.net.upscaler(x_lr[...,:self.net.rrdb.conv_last.out_channels,:, :]) #self.rrdb.conv_last.out_channels == len(out_variables)
+        img_out, *_ = self.net.sample(x_lr, x_lr_up) 
+        return img_out
+
+    def training_step(
+        self,
+        batch: Tuple[torch.Tensor, torch.Tensor, List[str], List[str]],
+    ) -> torch.Tensor:
+        x, y, in_variables, out_variables = batch
+        
+        img_hr = y
+        img_lr = x
+        img_lr_up = self.net.upscaler(img_lr[...,:len(out_variables),:,:]) #extracting hr channels
+
+        x = img_hr
+        b, *_, device = *x.shape, x.device
+        t = torch.randint(0, self.net.num_timesteps, (b,), device=device).long() 
+        if self.net.use_rrdb:
+            if self.net.fix_rrdb:
+                self.net.rrdb.eval()
+                with torch.no_grad():
+                    rrdb_out, cond = self.net.rrdb(img_lr, True)
+            else:
+                rrdb_out, cond = self.net.rrdb(img_lr, True)
+        else:
+            rrdb_out = img_lr_up
+            cond = img_lr
+        x = self.net.img2res(x, img_lr_up)
+
+        x_start = x
+        noise = torch.randn_like(x_start)
+        x_tp1_gt = self.net.q_sample(x_start=x_start, t=t, noise=noise)
+        noise_pred = self.net.denoise_fn(x_tp1_gt, t, cond, img_lr_up)
+
+        
+        loss = self.train_loss(noise_pred, noise)
+        # if self.net.loss_type == 'l1':
+        #     loss = (noise - noise_pred).abs().mean()
+        # elif self.net.loss_type == 'l2':
+        #     loss = F.mse_loss(noise, noise_pred)
+        # elif self.net.loss_type == 'ssim':
+        #     loss = (noise - noise_pred).abs().mean()
+        #     loss = loss + (1 - self.ssim_loss(noise, noise_pred))
+        # else:
+        #     raise NotImplementedError()
+        loss_dict = {'train/q': loss}
+        if not self.net.fix_rrdb:
+            if self.net.aux_l1_loss:
+                loss_dict['train/aux_l1'] = F.l1_loss(rrdb_out, img_hr)
+                loss += loss_dict['train/aux_l1']
+            if self.net.aux_ssim_loss:
+                loss_dict['train/aux_ssim'] = 1 - self.net.ssim_loss(rrdb_out, img_hr)
+                loss += loss_dict['train/aux_ssim']
+            # if hparams['aux_percep_loss']:
+            #     loss_dict['aux_percep'] = self.percep_loss_fn[0](img_hr, rrdb_out)
+        
+        self.log_dict(
+            loss_dict,
+            prog_bar=True,
+            on_step=True,
+            on_epoch=False,
+            batch_size=x.shape[0],
+        )
+        return loss
 
 class YnetLitModule(LitModule):
     def __init__(

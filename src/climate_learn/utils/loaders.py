@@ -6,7 +6,7 @@ import warnings
 # Local application
 from .gis import prepare_ynet_climatology, prepare_deepsd_elevation
 from ..data import IterDataModule
-from ..models import DeepSDLitModule, YnetLitModule, LitModule, MODEL_REGISTRY
+from ..models import LitModule, DiffusionLitModule, DeepSDLitModule, YnetLitModule, MODEL_REGISTRY
 from ..models.hub import (
     Climatology,
     Interpolation,
@@ -17,8 +17,10 @@ from ..models.hub import (
     UnetUpsampling,
     VisionTransformer,
     VisionTransformerSAM,
+    GaussianDiffusion,
     YNet30,
     DeepSD,
+    
 )
 from ..models.lr_scheduler import LinearWarmupCosineAnnealingLR
 from ..transforms import TRANSFORMS_REGISTRY
@@ -205,7 +207,19 @@ def load_model_module(
             " or None"
         )
     # Instantiate Lightning Module
-    if architecture == "ynet":
+    if architecture == 'diffusion':
+        model_module = DiffusionLitModule(
+            model,
+            optimizer,
+            lr_scheduler,
+            train_loss,
+            val_losses,
+            test_losses,
+            train_transform,
+            val_transforms,
+            test_transforms,
+        )
+    elif architecture == "ynet":
         normalized_clim = prepare_ynet_climatology(data_module, path_to_elevation, out_vars)
         
         model_module = YnetLitModule(
@@ -247,7 +261,6 @@ def load_model_module(
             val_transforms,
             test_transforms,
         )
-
     return model_module
 
 
@@ -378,6 +391,16 @@ def load_architecture(task, data_module, architecture, upsampling):
                     num_heads=4,
                     mlp_ratio=4,
                 )
+            elif architecture == "diffusion":
+                backbone = GaussianDiffusion(
+                    in_channels,
+                    out_channels,
+                    out_height,
+                    out_width,
+                    history=1,
+                    timesteps=100,
+                    # loss_type='l1',
+                    beta_schedule='cosine')
             elif architecture == "samvit":
                 backbone = VisionTransformerSAM(
                     (64, 128),
