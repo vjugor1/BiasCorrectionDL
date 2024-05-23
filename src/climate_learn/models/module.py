@@ -59,7 +59,7 @@ class LitModule(pl.LightningModule):
     def replace_constant(self, y, yhat, out_variables):
         for i in range(yhat.shape[1]):
             # if constant replace with ground-truth value
-            if out_variables[i] in CONSTANTS_ERA:
+            if out_variables[i] in CONSTANTS:
                 yhat[:, i] = y[:, i]
         return yhat
 
