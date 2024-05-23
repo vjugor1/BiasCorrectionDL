@@ -22,6 +22,8 @@ WANDB_DIR="/app/out"
 docker run -it --name "${CONTAINER_NAME}" \
     -v "${PROJECT_DIR}:/app/" \
     -v "${DATA_DIR}:/app/data" \
+    -v /mnt/public-datasets/d.tanyushkina/downscaling/raw:/app/data/raw \
+    -v /mnt/public-datasets/d.tanyushkina/downscaling/experiments:/app/data/experiments \
     -m "${MEMORY_LIMIT}" --cpus="${CPUS}" --gpus '"'"${GPUS}"'"' \
     --ipc=host \
     -w="/app" \
