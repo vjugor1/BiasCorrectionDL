@@ -1,14 +1,15 @@
-era_save_path: '/app/data/era5_3h'
+era_save_path: '/app/data/climatedata/raw/era5_0.25deg/3H'
 
-year_start: 1982
-year_end: 1983
+year_start: 1959
+year_end: 2021
 
 # variables
 single_level_vars:
     - "2m_temperature"
-    # - "total_precipitation"
-    # - "10m_u_component_of_wind"
-    # - "10m_v_component_of_wind"
+    - "total_precipitation"
+    - "10m_u_component_of_wind"
+    - "10m_v_component_of_wind"
+    - "surface_pressure"
 
 # multilevel_vars:
 #     - "geopotential"

@@ -8,6 +8,7 @@ import xarray as xr
 import netCDF4 as nc
 from tqdm import tqdm
 import xesmf
+from datetime import datetime
 
 # Local application
 from .era5_constants import (
@@ -24,6 +25,11 @@ from .cmip6_constants import (
     CONSTANTS as constants_cmip
 )
 
+from .eobs_constants import (
+    NAME_TO_VAR as name_to_var_eobs,
+    VAR_TO_NAME  as var_to_name_eobs,
+    CONSTANTS as constants_eobs
+)
 
 def nc2np(path,
           src,
@@ -44,9 +50,14 @@ def nc2np(path,
         NAME_TO_VAR=name_to_var_cmip
         VAR_TO_NAME=var_to_name_cmip
         CONSTANTS=constants_cmip
-
+    elif src=="eobs":
+        NAME_TO_VAR=name_to_var_eobs
+        VAR_TO_NAME=var_to_name_eobs
+        CONSTANTS=constants_eobs
+    else:
+        print("Set one of sources from [era5, cmip6, eobs]")
+        
     assert frequency in ["H", "3H", "D"]
-    assert src in ["era5", "cmip6", "eobs"]
     if frequency=="3H":
         OBJ_PER_YEAR = 365*8 #(3hr period yields 8 obj per day)
     elif frequency=="H":
@@ -89,43 +100,59 @@ def nc2np(path,
         # non-constant fields
         for var in variables:
             try:
-                ps = glob.glob(os.path.join(path, var, f"*.nc"))
+                if src=="eobs":
+                    var = NAME_TO_VAR[var]
+                    ps = glob.glob(os.path.join(path, f"{var}*.nc")) # CMIP
+                else:
+                    ps = glob.glob(os.path.join(path, var, f"*.nc")) # E-OBS
                 ds = xr.open_mfdataset(
                     ps, combine="by_coords", parallel=True
                 )
             except OSError:
-                ps = glob.glob(os.path.join(path, var, f"*.zarr"))
+                ps1 = glob.glob(os.path.join(path, var, f"*{year}.zarr"))  # ERA
+                ps2 = glob.glob(os.path.join(path, var, f"*{year+1}.zarr"))
                 ds = xr.open_mfdataset(
-                    ps, combine="by_coords", parallel=True, engine="zarr"
+                    ps1+ps2, combine="by_coords", parallel=True, engine="zarr"
                 )
                 ds = ds.rename({'longitude': 'lon','latitude': 'lat'})
                 ds.transpose("time", "lat", "lon", ...)
-            ds = ds.sel(time=slice(f"{year}-01-01", f"{year}-12-31"))
+                
+            codes=list(ds.keys())
+            code = [x for x in codes if (x not in ["lat_bnds", "lon_bnds", "time_bnds"])][0]  # get variable name
+            if code in ["pr", "total_precipitation"]:
+                ds = ds.sel(time=slice(f"{year}-01-01", f"{year}-12-31")) 
+            else:
+                ds = ds.sel(time=slice(f"{year}-01-01 01:00:00", f"{year+1}-01-01 00:00:00"))   
             # ds.coords["lon"] = (ds.coords["lon"] + 180) % 360 - 180
             # Align in latitude direction with era
             # ds  = ds.sortby('lat', ascending=False)
-            
-            if regridder:#!= None:
+
+            if regridder:
                 ds = regridder(ds, keep_attrs=True)
 
             # cut last value if len(latitude) is odd == make it even
             if len(ds.lat)%2!=0:
                 ds = ds.isel(lat=slice(0, len(ds.lat)//2*2))
 
-            code=list(ds.keys())[0]  # get variable name
             if len(ds[code].shape) == 3:  # surface level variables
                 ds[code] = ds[code].expand_dims("val", axis=1)
+                if code == "total_precipitation":  
+                    ds[code] = ds[code] * 1000   #ERA precip: m --> mm
+
+                elif code=="pr": #CMIP precipitation: kg/m2/s --> mm
+                    if frequency=="3H":
+                        ds[code] = ds[code]*60*60*3
+                    elif frequency=="H":
+                        ds[code] = ds[code]*60*60
+                    elif frequency=="D":
+                        ds[code] = ds[code]*60*60*24
+                        
+                elif code in ["tg", "tx", "tn"]: #EOBS temp: C --> K
+                    ds[code] = ds[code] + 273.15
+                
                 # remove the last 24 hours if this year has 366 days
-                if code == "tp":  # accumulate 6 hours and log transform
-                    tp = ds[code].to_numpy()
-                    tp_cum_6hrs = np.cumsum(tp, axis=0)
-                    tp_cum_6hrs[6:] = tp_cum_6hrs[6:] - tp_cum_6hrs[:-6]
-                    eps = 0.001
-                    tp_cum_6hrs = np.log(eps + tp_cum_6hrs) - np.log(eps)
-                    np_vars[var] = tp_cum_6hrs[:OBJ_PER_YEAR]
-                else:
-                    np_vars[var] = ds[code].to_numpy()[:OBJ_PER_YEAR]
-                    
+                np_vars[var] = ds[code].to_numpy()[:OBJ_PER_YEAR]
+                  
                 if partition == "train":
                     # compute mean and std of each var in each year
                     var_mean_yearly = np_vars[var].mean(axis=(0, 2, 3))
@@ -154,7 +181,7 @@ def nc2np(path,
                     np_vars[f"{var}_{level}"] = ds_level[code].to_numpy()[
                         :OBJ_PER_YEAR
                     ]
-
+                    
                     if partition == "train":
                         # compute mean and std of each var in each year
                         var_mean_yearly = np_vars[f"{var}_{level}"].mean(axis=(0, 2, 3))
@@ -172,17 +199,19 @@ def nc2np(path,
                     else:
                         climatology[f"{var}_{level}"].append(clim_yearly)
 
+
         assert OBJ_PER_YEAR % num_shards_per_year == 0
-        num_hrs_per_shard = OBJ_PER_YEAR // num_shards_per_year
+        num_per_shard = OBJ_PER_YEAR // num_shards_per_year
         for shard_id in range(num_shards_per_year):
-            start_id = shard_id * num_hrs_per_shard
-            end_id = start_id + num_hrs_per_shard
+            start_id = shard_id * num_per_shard
+            end_id = start_id + num_per_shard
             sharded_data = {k: np_vars[k][start_id:end_id] for k in np_vars.keys()}
             np.savez(
                 os.path.join(save_dir, partition, f"{year}_{shard_id}.npz"),
                 **sharded_data,
             )
 
+         
     if partition == "train":
         for var in normalize_mean.keys():
             if not constants_are_downloaded or var not in constant_fields:
@@ -202,8 +231,8 @@ def nc2np(path,
                 # E[X] = E[E[X|Y]]
                 mean = mean.mean(axis=0)
                 normalize_mean[var] = mean
-                if var == "total_precipitation":
-                    normalize_mean[var] = np.zeros_like(normalize_mean[var])
+                # if var == "total_precipitation":
+                #     normalize_mean[var] = np.zeros_like(normalize_mean[var])
                 normalize_std[var] = std
 
         np.savez(os.path.join(save_dir, "normalize_mean.npz"), **normalize_mean)
@@ -218,31 +247,26 @@ def nc2np(path,
     )
 
 
-def regrid(ds_in, align_target):
-    """
-    Regrids an input dataset to match the resolution of a target grid. 
-
-    Parameters:
-    - ds_in (xarray.Dataset): The input dataset to be regridded.
-    - align_target (str): The directory path where the target grid files are stored.
-
-    Returns:
-    - regridder (xesmf.Regridder): A regridder object configured to regrid from the input
-      dataset's grid to the target grid.
-    - grid_out (dict): The output grid coordinates as a dictionary with keys 'lon' and 'lat'.
-
-    Note:
-    - This function currently assumes the target grid files are in '.zarr' format and
-      hardcoded to subsample every fourth point (e.g., [::4]). This may need to be adjusted
-      based on specific requirements or more flexible grid handling.
-    """
+def regrid(ds_in, align_target, scale_factor):
     ps1 = glob.glob(os.path.join(align_target, "*"))
     ps2 = glob.glob(os.path.join(align_target, ps1[0], "*.zarr"))
-    ds = xr.open_mfdataset(
+    ds_target = xr.open_mfdataset(
                     ps2, combine="by_coords", parallel=True, engine="zarr"
                 )
-    lon_coarsen = ds["longitude"][::4].values
-    lat_coarsen = ds["latitude"][::4].values
+    # # Get source bounds and round to floor
+    # top = np.array([ds_in.coords['latitude'].max()])[0]//1
+    # bottom = np.array([ds_in.coords['latitude'].min()])[0]//1
+    # left = np.array([ds_in.coords['longitude'].min()])[0]//1
+    # right = np.array([ds_in.coords['longitude'].max()])[0]//1
+    # print(top, bottom, left, right)
+    
+    # # Tighten bounds for negative values
+    # top, bottom, left, right= [x if x>=0 else x+1 for x in [top, bottom, left, right]]
+    # ds_target = ds_target.where(ds_target["longitude"]<=right or 360+left<=ds_target["longitude"], drop=True)
+    # ds_target = ds_target.where(bottom<=ds_target["latitude"]<=top, drop=True)
+    
+    lon_coarsen = ds_target["longitude"][::scale_factor].values
+    lat_coarsen = ds_target["latitude"][::scale_factor].values
     grid_out = {'lon': lon_coarsen, 'lat': lat_coarsen}
     
     regridder = xesmf.Regridder(ds_in,
@@ -264,7 +288,8 @@ def convert_nc2npz(
     end_year,
     num_shards,
     frequency,
-    align_target
+    align_target,
+    scale_factor=1
 ):
     assert (
         start_val_year > start_train_year
@@ -278,7 +303,10 @@ def convert_nc2npz(
     os.makedirs(save_dir, exist_ok=True)
     
     try:
-        ps = glob.glob(os.path.join(root_dir, variables[0], "*.nc"))
+        if src=="eobs":
+            ps = glob.glob(os.path.join(root_dir, f"{name_to_var_eobs[variables[0]]}*.nc"))
+        else:
+            ps = glob.glob(os.path.join(root_dir, variables[0], "*.nc"))
         ds = xr.open_mfdataset(
             ps, combine="by_coords", parallel=True
         )
@@ -291,7 +319,7 @@ def convert_nc2npz(
         
     # create regridder and save lat/lon data
     if align_target: 
-        regridder, grid_out = regrid(ds, align_target)
+        regridder, grid_out = regrid(ds, align_target, scale_factor)
         lat = grid_out["lat"]
         lon = grid_out["lon"]
     else:
