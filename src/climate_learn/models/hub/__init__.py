@@ -9,3 +9,4 @@ from .utils import MODEL_REGISTRY
 from .vit import VisionTransformer
 from .samvit import VisionTransformerSAM
 from .ynet import YNet30
+from .deepsd import DeepSD

@@ -254,3 +254,30 @@ class YnetLitModule(LitModule):
             x_aux_expanded = x_aux_expanded.unsqueeze(0).expand(x.size(0), *self.x_aux.size())
             return self.net(x, x_aux_expanded)
         return self.net(x)
+
+class DeepSDLitModule(LitModule):
+    def __init__(
+        self,
+        net: torch.nn.Module,
+        optimizer: torch.optim.Optimizer,
+        lr_scheduler: LRScheduler,
+        train_loss: Callable,
+        val_loss: List[Callable],
+        test_loss: List[Callable],
+        train_target_transform: Optional[Callable] = None,
+        val_target_transforms: Optional[List[Union[Callable, None]]] = None,
+        test_target_transforms: Optional[List[Union[Callable, None]]] = None,
+        elevation: Optional[List[Union[torch.Tensor, None]]] = None,
+    ):
+        super().__init__(net, optimizer, lr_scheduler,
+                         train_loss, val_loss, test_loss,
+                         train_target_transform, val_target_transforms,
+                         test_target_transforms)
+        self.elevation = elevation
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        if self.elevation is not None:
+            # Ensure all elevation tensors are on the same device as x
+            elevation_on_device = [e.to(x.device) for e in self.elevation]
+            return self.net(x, elevation_on_device)
+        return self.net(x)

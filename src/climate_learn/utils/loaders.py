@@ -4,9 +4,9 @@ from functools import partial
 import warnings
 
 # Local application
-from .gis import prepare_ynet_climatology
+from .gis import prepare_ynet_climatology, prepare_deepsd_elevation
 from ..data import IterDataModule
-from ..models import YnetLitModule, LitModule, MODEL_REGISTRY
+from ..models import DeepSDLitModule, YnetLitModule, LitModule, MODEL_REGISTRY
 from ..models.hub import (
     Climatology,
     Interpolation,
@@ -17,7 +17,8 @@ from ..models.hub import (
     UnetUpsampling,
     VisionTransformer,
     VisionTransformerSAM,
-    YNet30
+    YNet30,
+    DeepSD,
 )
 from ..models.lr_scheduler import LinearWarmupCosineAnnealingLR
 from ..transforms import TRANSFORMS_REGISTRY
@@ -219,6 +220,21 @@ def load_model_module(
             test_transforms,
             normalized_clim,
         )
+    elif architecture == "deepsd":
+        elevation_list = prepare_deepsd_elevation(data_module, path_to_elevation)
+        
+        model_module = DeepSDLitModule(
+            model,
+            optimizer,
+            lr_scheduler,
+            train_loss,
+            val_losses,
+            test_losses,
+            train_transform,
+            val_transforms,
+            test_transforms,
+            elevation_list,
+        )
     else:
         model_module = LitModule(
             model,
@@ -378,6 +394,11 @@ def load_architecture(task, data_module, architecture, upsampling):
                 )
             elif architecture == "ynet":
                 backbone = YNet30(
+                    in_channels,
+                    out_channels,
+                )
+            elif architecture == "deepsd":
+                backbone = DeepSD(
                     in_channels,
                     out_channels,
                 )
