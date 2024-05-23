@@ -1,2 +1,3 @@
 defaults:
   - load: era.yaml
+  - train: era5-era5.yaml
