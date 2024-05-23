@@ -9,7 +9,7 @@ if ! command -v docker &> /dev/null; then
 fi
 
 # Configuration options (could be passed as arguments or modified here)
-MEMORY_LIMIT="128000m"
+MEMORY_LIMIT="256000m"
 CPUS="32"
 GPUS="device=0,1,2,3,4,5"
 CONTAINER_NAME="$(id -un)-corrector_1"
