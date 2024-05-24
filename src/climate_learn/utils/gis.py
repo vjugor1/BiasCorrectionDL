@@ -124,9 +124,6 @@ def prepare_deepsd_elevation(data_module, path_to_elevation):
     if scale_factor % 2 != 0 or (scale_factor & (scale_factor - 1)) != 0:
         raise ValueError("Scale factor must be a power of 2.")
 
-    if scale_factor == 2:
-        return None
-
     # Load and preprocess the high-resolution dataset
     with xr.open_dataset(path_to_elevation) as elevation_ds:
         elevation_ds = (

@@ -70,8 +70,8 @@ def setup_data_module(config):
                 in_vars.append(var + "_" + str(level))
         else:
             in_vars.append(var)
+    out_vars = config.data.out_variables
     if config.model.architecture == "diffusion":
-        out_vars = config.data.out_variables
         for var in out_vars:
             in_vars.remove(var)
         in_vars = out_vars + in_vars
