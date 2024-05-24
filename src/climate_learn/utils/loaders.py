@@ -379,7 +379,7 @@ def load_architecture(task, data_module, architecture, upsampling):
                 )
             elif architecture == "vit":
                 backbone = VisionTransformer(
-                    (64, 128),
+                    (out_height, out_width),
                     in_channels,
                     out_channels,
                     history=1,
@@ -403,7 +403,7 @@ def load_architecture(task, data_module, architecture, upsampling):
                     beta_schedule='cosine')
             elif architecture == "samvit":
                 backbone = VisionTransformerSAM(
-                    (64, 128),
+                    (out_height, out_width),
                     in_channels,
                     out_channels,
                     history=1,
