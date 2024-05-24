@@ -70,13 +70,19 @@ def setup_data_module(config):
                 in_vars.append(var + "_" + str(level))
         else:
             in_vars.append(var)
-
+    if config.model.architecture == "diffusion":
+        out_vars = config.data.out_variables
+        for var in out_vars:
+            in_vars.remove(var)
+        in_vars = out_vars + in_vars
+        assert out_vars == in_vars[:len(out_vars)], "Out variables' names (`out_vars`) must be placed in the beginning of `in_vars`"
+        
     dm = IterDataModule(
         task="downscaling",
         inp_root_dir=config.data.era5_low_res_dir,
         out_root_dir=config.data.era5_high_res_dir,
         in_vars=in_vars,
-        out_vars=config.data.out_variables,
+        out_vars=out_vars,
         subsample=config.data.subsample,
         batch_size=config.data.batch_size,
         buffer_size=config.data.buffer_size,
