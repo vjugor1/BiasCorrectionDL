@@ -1,0 +1,38 @@
+base_dir: "/app/data/experiments/downscaling-CMIP-ERA"
+
+data:
+  era5_low_res_dir: "/app/data/processed/cmip6/3H"
+  era5_high_res_dir: "/app/data/processed/era5_0.25deg/3H"
+  subsample: 1
+  batch_size: 4
+  buffer_size: 4000
+  num_workers: 2
+  # Available variables: 
+  # "air_temperature", "u_component_of_wind", "v_component_of_wind", "surface_pressure", "precipitation"
+
+  in_variables: ["air_temperature", "u_component_of_wind", "v_component_of_wind", "surface_pressure", "precipitation"]
+  # Output variables to predict. Options are: "2m_temperature", "10m_u_component_of_wind", "10m_v_component_of_wind", "surface_pressure", "total_precipitation"
+  out_variables: ["2m_temperature", "10m_u_component_of_wind", "10m_v_component_of_wind", "surface_pressure", "total_precipitation"]
+
+model:
+  # Model architecture options: "resnet", "unet", "vit", "samvit", "ynet", "deepsd", "diffusion"
+  architecture: "vit"
+  # Upsampling method options: "bilinear", "bicubic", "unet_upsampling", "unet_upsampling_bilinear", "none"
+  # NOTE: Some models (e.g. ynet) do not support input upsampling, so they need this parameter set "none"
+  upsampling: "bilinear"
+
+training:
+  summary_depth: 1
+  max_epochs: 200
+  patience: 5
+  learning_rate: 1e-5
+  warmup_epochs: 5
+  # GPU devices to use (e.g., [0] for single GPU, [0, 1] for multiple GPUs)
+  gpus: [0]
+  checkpoint: null
+  # Early stopping configuration
+  early_stopping: "val/mse:aggregate"
+  min_delta: 1e-4
+  precision: "bf16-mixed"
+  # Seed for reproducibility
+  seed: 123
