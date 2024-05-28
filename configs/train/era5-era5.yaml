@@ -18,7 +18,7 @@ data:
 
 model:
   # Model architecture options: "resnet", "unet", "vit", "samvit", "ynet", "deepsd", "diffusion"
-  architecture: "diffusion"
+  architecture: "deepsd"
   # Upsampling method options: "bilinear", "bicubic", "unet_upsampling", "unet_upsampling_bilinear", "none"
   # NOTE: Some models (e.g. ynet) do not support input upsampling, so they need this parameter set "none"
   upsampling: "none"

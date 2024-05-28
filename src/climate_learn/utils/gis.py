@@ -135,32 +135,32 @@ def prepare_deepsd_elevation(data_module, path_to_elevation):
             np.log1p(np.nan_to_num(elevation_ds["topo"].values)) / 9
         )
 
-    high_res_transform = _calculate_transform(elevation_ds)
-
+    # Initial setup for reprojection
     target_lat, target_lon = data_module.get_lat_lon()
-    target_lat = target_lat[::-1] if target_lat[0] < target_lat[-1] else target_lat
-
-    target_shape = (len(target_lat), len(target_lon))
-    target_transform = from_bounds(
-        target_lon.min(), target_lat.min(),
-        target_lon.max(), target_lat.max(),
-        len(target_lon), len(target_lat),
-    )
+    target_lat = np.flip(target_lat) if target_lat[0] < target_lat[-1] else target_lat
 
     elevation_list = []
+    current_shape = (len(target_lat), len(target_lon))
+    current_transform = from_bounds(
+        target_lon.min(), target_lat.min(),
+        target_lon.max(), target_lat.max(),
+        current_shape[1], current_shape[0],
+    )
+
+    # Reproject elevation data at different scales
     for _ in range(int(np.log2(scale_factor))):
         reprojected_data = _reproject_elevation(
-            elevation_ds["topo"].values, target_shape, high_res_transform, target_transform
+            elevation_ds["topo"].values, current_shape,
+            _calculate_transform(elevation_ds), current_transform
         )
         elevation_tensor = torch.from_numpy(reprojected_data).unsqueeze(0)
         elevation_list.append(elevation_tensor)
 
-        # Update target shape and transform for the next scale
-        target_shape = (target_shape[0] // 2, target_shape[1] // 2)
-        target_transform = from_bounds(
+        # Update the target shape and transform for the next scale
+        current_shape = (current_shape[0] // 2, current_shape[1] // 2)
+        current_transform = from_bounds(
             target_lon.min(), target_lat.min(),
             target_lon.max(), target_lat.max(),
-            target_shape[1], target_shape[0],
-        )
-
-    return elevation_list
+            current_shape[1], current_shape[0],
+        )   
+    return elevation_list[::-1]

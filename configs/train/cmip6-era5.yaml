@@ -4,7 +4,7 @@ data:
   era5_low_res_dir: "/app/data/processed/cmip6/3H"
   era5_high_res_dir: "/app/data/processed/era5_0.25deg/3H"
   subsample: 1
-  batch_size: 4
+  batch_size: 64
   buffer_size: 4000
   num_workers: 2
   # Available variables: 
@@ -16,10 +16,10 @@ data:
 
 model:
   # Model architecture options: "resnet", "unet", "vit", "samvit", "ynet", "deepsd", "diffusion"
-  architecture: "vit"
+  architecture: "deepsd"
   # Upsampling method options: "bilinear", "bicubic", "unet_upsampling", "unet_upsampling_bilinear", "none"
   # NOTE: Some models (e.g. ynet) do not support input upsampling, so they need this parameter set "none"
-  upsampling: "bilinear"
+  upsampling: "none"
 
 training:
   summary_depth: 1
@@ -35,4 +35,4 @@ training:
   min_delta: 1e-4
   precision: "bf16-mixed"
   # Seed for reproducibility
-  seed: 123
+  seed: 777

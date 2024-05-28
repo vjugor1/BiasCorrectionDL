@@ -424,6 +424,8 @@ def load_architecture(task, data_module, architecture, upsampling):
                 backbone = DeepSD(
                     in_channels,
                     out_channels,
+                    num_features=64,
+                    scale=out_width // in_width,
                 )
             else:
                 raise_not_impl()

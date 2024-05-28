@@ -5,6 +5,7 @@ from .utils import register
 import torch
 import torch.nn as nn
 
+
 class SRCNN(nn.Module):
     def __init__(self, in_channels, out_channels, num_features):
         super(SRCNN, self).__init__()
@@ -38,7 +39,7 @@ class DeepSD(nn.Module):
         self.scale = scale
         self.srcnn_layers = nn.ModuleList()
         self.upsample = nn.Upsample(
-            scale_factor=scale, mode="bilinear", align_corners=False
+            scale_factor=2, mode="bilinear", align_corners=False
         )
         # Calculate the number of SRCNN layers needed
         num_srcnn_layers = self.calculate_num_layers(scale)
@@ -59,8 +60,15 @@ class DeepSD(nn.Module):
         return num_layers
 
     def forward(self, x, elevation=None):
+        if elevation is None or len(elevation) != len(self.srcnn_layers):
+            raise ValueError(f"Elevation data must be provided as a list with an entry for each SRCNN layer, expected length {len(self.srcnn_layers)}, got {len(elevation) if elevation is not None else 'None'}.")
+
         for i, srcnn in enumerate(self.srcnn_layers):
             x = self.upsample(x)
+            if elevation[i].shape[2:] != x.shape[2:]:
+                raise ValueError(
+                    f"Elevation tensor at index {i} with shape {elevation[i].shape} does not match the spatial dimensions of the upscaled input with shape {x.shape}."
+                )
             x = torch.cat([x, elevation[i]], dim=1)
             x = srcnn(x)
         return x
