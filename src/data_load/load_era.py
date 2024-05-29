@@ -2,7 +2,7 @@ import xarray as xr
 import os
 from tqdm import tqdm
 import logging
-import sys
+import numpy as np
 
 import hydra
 from omegaconf import DictConfig, OmegaConf
@@ -36,42 +36,49 @@ def run_zarr_load(cfg: DictConfig):#vars, years, PATH):
 
     # Loop over variables
     logging.info("Starting download...")
-    for year in tqdm(years):
-        for var in vars:
-            logging.info(f"Variable: {var}; Year: {year}")
-            data_var = data[var].sel(time=str(year))
-            
-            if var=="2m_temperature":
-                data_sel = data_var.resample(time='3H').first()
-                # # Adjust the path and save to zarr
-                zarr_path = os.path.join(PATH, var, "{}_{}.zarr".format(var, year))
-                data_sel.to_zarr(zarr_path, mode='w')
+    const_var = [] 
+    for var in vars:
+        if var in ["land_sea_mask", "geopotential_at_surface"]:
+            logging.info(f"Variable: {var}")
+            const_var.append(data[var])
+        
+        else:
+            for year in tqdm(years):
+                logging.info(f"Variable: {var}; Year: {year}")
+                data_var = data[var].sel(time=str(year))
                 
-                # data_sel = data_var.resample(time='3H').min(dim='time')s
-                # # Adjust the path and save to zarr
-                # zarr_path = os.path.join(PATH, "{}_min_{}.zarr".format(var, year))
-                # data_sel.to_zarr(zarr_path, mode='w')
-                
-                # data_sel = data_var.resample(time='3H').max(dim='time')
-                # # Adjust the path and save to zarr
-                # zarr_path = os.path.join(PATH, "{}_max_{}.zarr".format(var, year))
-                # data_sel.to_zarr(zarr_path, mode='w')
-                
-            elif var=="total_precipitation":
-                data_sel = data_var.resample(time='3H').sum(dim='time')
-                # Adjust the path and save to zarr
-                zarr_path = os.path.join(PATH, var, "{}_{}.zarr".format(var, year))
-                data_sel.to_zarr(zarr_path, mode='w')
-                
-            elif var in ["10m_u_component_of_wind", "10m_v_component_of_wind", "surface_pressure"]:
-                data_sel = data_var.resample(time='3H').first()
-                # # Adjust the path and save to zarr
-                zarr_path = os.path.join(PATH, var, "{}_{}.zarr".format(var, year))
-                data_sel.to_zarr(zarr_path, mode='w')
-                
-            else:
-                print(f"For variable {var} procedure not implemented")
-            
+                if var=="2m_temperature":
+                    data_sel = data_var.resample(time='3H').first()
+                    # # Adjust the path and save to zarr
+                    zarr_path = os.path.join(PATH, var, "{}_{}.zarr".format(var, year))
+                    data_sel.to_zarr(zarr_path, mode='w')
+                    
+                    # data_sel = data_var.resample(time='3H').min(dim='time')s
+                    # # Adjust the path and save to zarr
+                    # zarr_path = os.path.join(PATH, "{}_min_{}.zarr".format(var, year))
+                    # data_sel.to_zarr(zarr_path, mode='w')
+                    
+                elif var=="total_precipitation":
+                    # Sum yields timestamps [0, 3, .., 21], corresponds to [1.30, 4.30...] at CMIP
+                    data_sel = data_var.resample(time='3H').sum(dim='time')
+                    # Adjust the path and save to zarr
+                    zarr_path = os.path.join(PATH, var, "{}_{}.zarr".format(var, year))
+                    data_sel.to_zarr(zarr_path, mode='w')
+                    
+                elif var in ["10m_u_component_of_wind", "10m_v_component_of_wind", "surface_pressure"]:
+                    data_sel = data_var.resample(time='3H').first()
+                    # # Adjust the path and save to zarr
+                    zarr_path = os.path.join(PATH, var, "{}_{}.zarr".format(var, year))
+                    data_sel.to_zarr(zarr_path, mode='w')
+
+                else:
+                    print(f"For variable {var} procedure not implemented")
+        
+        zarr_path = os.path.join(PATH, "constants_0.25.nc")
+        ds_const = xr.combine_by_coords(const_var)
+        # ds_const["lat"] = xr.DataArray(data = np.array([ds_const['latitude']]*len(ds_const["longitude"])).T, coords=ds_const.coords)
+        ds_const.to_netcdf(zarr_path, mode='w')     
+          
     logging.info("Download finished.")
 
 if __name__ == "__main__":

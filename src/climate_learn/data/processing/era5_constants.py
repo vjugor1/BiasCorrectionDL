@@ -6,9 +6,9 @@ NAME_TO_VAR = {
     "surface_pressure": "surface_pressure",
     "toa_incident_solar_radiation": "tisr",
     "total_precipitation": "tp",
-    "land_sea_mask": "lsm",
-    "orography": "orography",
-    "lattitude": "lat2d",
+    "land_sea_mask": "land_sea_mask",
+    "orography": "geopotential_at_surface",
+    "latitude": "lat",
     "geopotential": "z",
     "u_component_of_wind": "u",
     "v_component_of_wind": "v",
@@ -33,7 +33,7 @@ SINGLE_LEVEL_VARS = [
     "total_cloud_cover",
     "land_sea_mask",
     "orography",
-    "lattitude",
+    "latitude",
 ]
 
 PRESSURE_LEVEL_VARS = [
@@ -70,7 +70,7 @@ VAR_TO_UNIT = {
 
 DEFAULT_PRESSURE_LEVELS = [50, 250, 500, 600, 700, 850, 925]
 
-CONSTANTS = ["orography", "land_sea_mask", "slt", "lattitude", "longitude"]
+CONSTANTS = ["geopotential_at_surface", "land_sea_mask", "slt", "lat", "longitude"]
 
 NAME_LEVEL_TO_VAR_LEVEL = {}
 

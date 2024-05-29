@@ -1,15 +1,17 @@
-era_save_path: '/app/data/climatedata/raw/era5_0.25deg/3H'
+era_save_path: '/app/data/raw/era5_0.25deg/3H'
 
 year_start: 1959
 year_end: 2021
 
 # variables
 single_level_vars:
-    - "2m_temperature"
-    - "total_precipitation"
-    - "10m_u_component_of_wind"
-    - "10m_v_component_of_wind"
-    - "surface_pressure"
+    # - "2m_temperature"
+    # - "total_precipitation"
+    # - "10m_u_component_of_wind"
+    # - "10m_v_component_of_wind"
+    # - "surface_pressure"
+    - "land_sea_mask"
+    - "geopotential_at_surface"
 
 # multilevel_vars:
 #     - "geopotential"

@@ -73,11 +73,11 @@ def nc2np(path,
     climatology = {}
 
     constants_path = os.path.join(path, "constants.nc")
-    constants_are_downloaded = os.path.isfile(constants_path)
+    constants_are_downloaded = os.path.exists(constants_path)
 
     if constants_are_downloaded:
-        constants = xr.open_mfsrc(
-            constants_path, combine="by_coords", parallel=True
+        constants = xr.open_dataset(
+            constants_path
         )
         constant_fields = [VAR_TO_NAME[v] for v in CONSTANTS if v in VAR_TO_NAME.keys()]
         constant_values = {}
@@ -99,16 +99,19 @@ def nc2np(path,
 
         # non-constant fields
         for var in variables:
-            try:
-                if src=="eobs":
-                    var = NAME_TO_VAR[var]
-                    ps = glob.glob(os.path.join(path, f"{var}*.nc")) # CMIP
-                else:
-                    ps = glob.glob(os.path.join(path, var, f"*.nc")) # E-OBS
+            if src=="eobs":
+                var = NAME_TO_VAR[var]
+                ps = glob.glob(os.path.join(path, f"{var}*.nc")) # E-OBS
                 ds = xr.open_mfdataset(
-                    ps, combine="by_coords", parallel=True
-                )
-            except OSError:
+                        ps, combine="by_coords", parallel=True
+                    )
+            elif src=="cmip6":
+                ps = glob.glob(os.path.join(path, var, f"*.nc")) # CMIP
+                ds = xr.open_mfdataset(
+                        ps, combine="by_coords", parallel=True
+                    )
+            # except OSError:
+            elif src=="era5":
                 ps1 = glob.glob(os.path.join(path, var, f"*{year}.zarr"))  # ERA
                 ps2 = glob.glob(os.path.join(path, var, f"*{year+1}.zarr"))
                 ds = xr.open_mfdataset(
@@ -249,7 +252,7 @@ def nc2np(path,
 
 def regrid(ds_in, align_target, scale_factor):
     ps1 = glob.glob(os.path.join(align_target, "*"))
-    ps2 = glob.glob(os.path.join(align_target, ps1[0], "*.zarr"))
+    ps2 = glob.glob(os.path.join(align_target, ps1[-1], "*.zarr"))
     ds_target = xr.open_mfdataset(
                     ps2, combine="by_coords", parallel=True, engine="zarr"
                 )
