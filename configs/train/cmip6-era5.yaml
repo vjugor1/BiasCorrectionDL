@@ -4,22 +4,22 @@ data:
   era5_low_res_dir: "/app/data/processed/cmip6/3H"
   era5_high_res_dir: "/app/data/processed/era5_0.25deg/3H"
   subsample: 1
-  batch_size: 64
+  batch_size: 16
   buffer_size: 4000
   num_workers: 2
   # Available variables: 
-  # "air_temperature", "u_component_of_wind", "v_component_of_wind", "surface_pressure", "precipitation"
+  # "air_temperature", "u_component_of_wind", "v_component_of_wind", "surface_pressure", "precipitation", "orography", "land_sea_mask", "latitude", "specific_humidity", "cloud_cover", "upward_heat_flux", "moisture_in_soil"
 
-  in_variables: ["air_temperature", "u_component_of_wind", "v_component_of_wind", "surface_pressure", "precipitation"]
+  in_variables: ["air_temperature", "u_component_of_wind", "v_component_of_wind", "surface_pressure", "precipitation", "orography", "land_sea_mask", "latitude", "specific_humidity", "cloud_cover", "upward_heat_flux", "moisture_in_soil"]
   # Output variables to predict. Options are: "2m_temperature", "10m_u_component_of_wind", "10m_v_component_of_wind", "surface_pressure", "total_precipitation"
   out_variables: ["2m_temperature", "10m_u_component_of_wind", "10m_v_component_of_wind", "surface_pressure", "total_precipitation"]
 
 model:
   # Model architecture options: "resnet", "unet", "vit", "samvit", "ynet", "deepsd", "diffusion"
-  architecture: "deepsd"
+  architecture: "vit"
   # Upsampling method options: "bilinear", "bicubic", "unet_upsampling", "unet_upsampling_bilinear", "none"
   # NOTE: Some models (e.g. ynet) do not support input upsampling, so they need this parameter set "none"
-  upsampling: "none"
+  upsampling: "bilinear"
 
 training:
   summary_depth: 1
