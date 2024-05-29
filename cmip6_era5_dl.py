@@ -52,12 +52,11 @@ def main(cfg: DictConfig):
 def construct_experiment_name(config):
     architecture = config.model.architecture
     upsampling = config.model.upsampling
-    out_variables = config.data.out_variables
+    out_variables = list(config.data.out_variables)
     seed = config.training.seed
     mode = "single"
-    if isinstance(out_variables, list):
-        if len(out_variables) > 1:
-            mode = "multi"
+    if len(out_variables) > 1:
+        mode = "multi"
     experiment_name = f"{architecture}_{mode}_{upsampling}_{seed}"
     return experiment_name
 
