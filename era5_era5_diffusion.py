@@ -32,7 +32,7 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    "--era5_low_res_dir",
+    "--cmip6_low_res_dir",
     type=str,
     # default="/app/data/ClimateLearn/processed/ERA5/5.625",
     default="/app/data/ClimateLearn/processed/weatherbench/era5/5.625deg"
@@ -98,7 +98,7 @@ assert out_vars == in_vars[:len(out_vars)], "Out variables' names (`out_vars`) m
 
 dm = IterDataModule(
     task="downscaling",
-    inp_root_dir=args.era5_low_res_dir,
+    inp_root_dir=args.cmip6_low_res_dir,
     out_root_dir=args.era5_high_res_dir,
     in_vars=in_vars,
     out_vars=out_vars,
