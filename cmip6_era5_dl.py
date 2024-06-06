@@ -18,7 +18,7 @@ from src.climate_learn.data.processing.era5_constants import (
 
 torch.set_float32_matmul_precision("high")
 
-@hydra.main(config_path="/app/configs/train", config_name="cmip6-era5")
+@hydra.main(config_path="/app/configs/train", config_name="cmip6-era5-d")
 def main(cfg: DictConfig):
     # Construct dynamic experiment name
     experiment_name = construct_experiment_name(cfg)

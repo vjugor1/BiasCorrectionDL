@@ -1,0 +1,37 @@
+base_dir: "/app/data/experiments/downscaling-CMIP-ERA-3H"
+
+data:
+  cmip6_low_res_dir: "/app/data/processed/cmip6-era5/cmip6/3H"
+  era5_high_res_dir: "/app/data/processed/cmip6-era5/era5_0.25/3H"
+  subsample: 1
+  batch_size: 32
+  buffer_size: 2000
+  num_workers: 2
+  # Available variables: 
+  # "air_temperature", "u_component_of_wind", "v_component_of_wind", "surface_pressure", "precipitation", "orography", "land_sea_mask", "latitude", "specific_humidity", "cloud_cover", "upward_heat_flux", "moisture_in_soil"
+  in_variables: ["air_temperature", "u_component_of_wind", "v_component_of_wind", "precipitation", "surface_pressure", "orography", "land_sea_mask", "latitude", "specific_humidity", "cloud_cover", "upward_heat_flux", "moisture_in_soil"]
+  # Output variables to predict. Options are: "2m_temperature", "10m_u_component_of_wind", "10m_v_component_of_wind", "surface_pressure", "total_precipitation"
+  out_variables: ["2m_temperature", "10m_u_component_of_wind", "10m_v_component_of_wind", "total_precipitation", "surface_pressure"]
+
+model:
+  # Model architecture options: "resnet", "unet", "vit", "samvit", "ynet", "deepsd", "diffusion"
+  architecture: "deepsd"
+  # Upsampling method options: "bilinear", "bicubic", "unet_upsampling", "unet_upsampling_bilinear", "none"
+  # NOTE: Some models (e.g. ynet) do not support input upsampling, so they need this parameter set "none"
+  upsampling: "none"
+
+training:
+  summary_depth: 1
+  max_epochs: 200
+  patience: 5
+  learning_rate: 1e-5
+  warmup_epochs: 5
+  # GPU devices to use (e.g., [0] for single GPU, [0, 1] for multiple GPUs)
+  gpus: [0]
+  checkpoint: null
+  # Early stopping configuration
+  early_stopping: "val/mse:aggregate"
+  min_delta: 1e-4
+  precision: "16-mixed"
+  # Seed for reproducibility
+  seed: 777
