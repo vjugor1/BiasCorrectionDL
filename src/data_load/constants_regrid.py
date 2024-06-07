@@ -3,17 +3,30 @@ import xarray as xr
 import xesmf
 
 SCALE_FACTOR = 4
-PATH_SRC = "/app/data/raw/era5_0.25deg/3H/constants_0.25.nc"
-PATH_SAVE= "/app/data/raw/cmip6/3H/constants.nc"
+PATH_SRC = "/app/data/raw/cmip6-era5/era5_0.25/constants.nc"
+PATH_SAVE= "/app/data/raw/cmip6-era5/cmip6/constants.nc"
 
-def regrid(path_in, path_out, scale_factor):
+def regrid(path_in, path_out, scale_factor, periodic=True):
     ds = xr.open_mfdataset(
                     path_in, combine="by_coords", parallel=True
                 )
-
-    lon_coarsen = ds["longitude"][::scale_factor].values
-    lat_coarsen = ds["latitude"][::scale_factor].values
-    grid_out = {'lon': lon_coarsen, 'lat': lat_coarsen}
+    if len(ds["latitude"])/scale_factor%2!=0:
+            n_cells_lat=int((len(ds["latitude"])-1)/scale_factor)
+    if periodic==True:
+        n_cells_lon=int(len(ds["longitude"])/scale_factor)
+    else:
+        n_cells_lon=int((len(ds["longitude"])-1)/scale_factor)
+        
+    lon_new = np.linspace(
+        np.min(ds["longitude"].values),
+        np.max(ds["longitude"].values),
+        n_cells_lon)
+    lat_new = np.linspace(
+        np.min(ds["latitude"].values),
+        np.max(ds["latitude"].values),
+        n_cells_lat)
+    
+    grid_out = {'lon': lon_new, 'lat': lat_new}
     
     regridder = xesmf.Regridder(ds,
                                 grid_out,
@@ -25,8 +38,6 @@ def regrid(path_in, path_out, scale_factor):
                         data = np.array([ds_regrid['lat']]*len(ds_regrid["lon"])).T,
                         coords=ds_regrid.coords
                         )
-    if len(ds_regrid.lat)%2!=0:
-        ds_regrid = ds_regrid.isel(lat=slice(0, len(ds_regrid.lat)//2*2))
     ds_regrid.to_netcdf(path_out)
         
         

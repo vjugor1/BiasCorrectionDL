@@ -1,29 +1,36 @@
-era_save_path: '/app/data/raw/era5_0.25deg/3H'
+save_path: '/app/data/raw/'
+local_path: 'era5_0.25/D'
+task: 'cmip6-era5' # "era5-eobs" | "cmip6-era5" 
 
 year_start: 1959
-year_end: 2021
+year_end: 2014
 
 # variables
-single_level_vars:
-    # - "2m_temperature"
-    # - "total_precipitation"
-    # - "10m_u_component_of_wind"
-    # - "10m_v_component_of_wind"
-    # - "surface_pressure"
+# single_level_vars:
+#     - "2m_temperature"
+#     - "total_precipitation"
+#     - "10m_u_component_of_wind"
+#     - "10m_v_component_of_wind"
+#     - "surface_pressure"
+
+constants:
     - "land_sea_mask"
     - "geopotential_at_surface"
 
-# multilevel_vars:
-#     - "geopotential"
+eobs_bounds:
+    left: -15
+    right: 40
+    top: 71
+    bottom: 35
 
 # isobaric surfaces
-level:
-    - 50
-    - 200
-    - 250
-    - 300
-    - 500
-    - 700
-    - 850
-    - 925
-    - 1000
+# level:
+#     - 50
+#     - 200
+#     - 250
+#     - 300
+#     - 500
+#     - 700
+#     - 850
+#     - 925
+#     - 1000

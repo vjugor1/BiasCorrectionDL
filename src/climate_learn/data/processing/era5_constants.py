@@ -1,5 +1,7 @@
 NAME_TO_VAR = {
     "2m_temperature": "2m_temperature",
+    "2m_temperature_max": "2m_temperature",
+    "2m_temperature_min": "2m_temperature",
     "10m_u_component_of_wind": "10m_u_component_of_wind",
     "10m_v_component_of_wind": "10m_v_component_of_wind",
     "mean_sea_level_pressure": "msl",
