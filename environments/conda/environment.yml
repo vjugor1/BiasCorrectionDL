@@ -45,3 +45,4 @@ dependencies:
     - einops==0.7.0
     - rich==13.7.1
     - nvitop==0.2.5.1
+    - torch-harmonics==0.6.5

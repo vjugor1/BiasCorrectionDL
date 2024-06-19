@@ -4,9 +4,9 @@ data:
   cmip6_low_res_dir: "/app/data/processed/cmip6-era5/cmip6/D"
   era5_high_res_dir: "/app/data/processed/cmip6-era5/era5_0.25/D"
   subsample: 1
-  batch_size: 32
+  batch_size: 16
   buffer_size: 2000
-  num_workers: 2
+  num_workers: 1
   # Available variables: 
   # "air_temperature", "u_component_of_wind", "v_component_of_wind", "surface_pressure", "precipitation", "orography", "land_sea_mask", "latitude", "specific_humidity", "cloud_cover", "upward_heat_flux", "moisture_in_soil"
   in_variables: ["air_temperature", "u_component_of_wind", "v_component_of_wind", "precipitation", "pressure_sea_level", "orography", "land_sea_mask", "latitude", "specific_humidity", "cloud_cover", "upward_heat_flux", "moisture_in_soil"]
@@ -15,7 +15,7 @@ data:
 
 model:
   # Model architecture options: "resnet", "unet", "vit", "samvit", "ynet", "deepsd", "diffusion"
-  architecture: "deepsd"
+  architecture: "deepsdsphere"
   # Upsampling method options: "bilinear", "bicubic", "unet_upsampling", "unet_upsampling_bilinear", "none"
   # NOTE: Some models (e.g. ynet) do not support input upsampling, so they need this parameter set "none"
   upsampling: "none"
@@ -27,7 +27,7 @@ training:
   learning_rate: 1e-5
   warmup_epochs: 5
   # GPU devices to use (e.g., [0] for single GPU, [0, 1] for multiple GPUs)
-  gpus: [0]
+  gpus: [3]
   checkpoint: null
   # Early stopping configuration
   early_stopping: "val/mse:aggregate"

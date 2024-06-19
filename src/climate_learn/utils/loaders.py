@@ -14,12 +14,15 @@ from ..models.hub import (
     Persistence,
     ResNet,
     Unet,
+    UnetSphere,
     UnetUpsampling,
+    SphereUpsampling,
     VisionTransformer,
     VisionTransformerSAM,
     GaussianDiffusion,
     YNet30,
     DeepSD,
+    DeepSDSphere,
     
 )
 from ..models.lr_scheduler import LinearWarmupCosineAnnealingLR
@@ -249,6 +252,21 @@ def load_model_module(
             test_transforms,
             elevation_list,
         )
+    elif architecture == "deepsdsphere":
+        elevation_list = prepare_deepsd_elevation(data_module, path_to_elevation)
+        
+        model_module = DeepSDLitModule(
+            model,
+            optimizer,
+            lr_scheduler,
+            train_loss,
+            val_losses,
+            test_losses,
+            train_transform,
+            val_transforms,
+            test_transforms,
+            elevation_list,
+        )
     else:
         model_module = LitModule(
             model,
@@ -377,6 +395,12 @@ def load_architecture(task, data_module, architecture, upsampling):
                     ch_mults=[1, 1, 2],
                     n_blocks=4
                 )
+            elif architecture == "unet_sphere":
+                backbone = UnetSphere(
+                    in_channels, out_channels,
+                    ch_mults=[1, 1, 2],
+                    n_blocks=4
+                )
             elif architecture == "vit":
                 backbone = VisionTransformer(
                     (out_height, out_width),
@@ -427,6 +451,15 @@ def load_architecture(task, data_module, architecture, upsampling):
                     num_features=64,
                     scale=out_width // in_width,
                 )
+            elif architecture == "deepsdsphere":
+                backbone = DeepSDSphere(
+                    in_channels,
+                    out_channels,
+                    in_shape=(in_height, in_width),
+                    out_shape=(out_height, out_width),
+                    num_features=64,
+                    scale=out_width // in_width,
+                )
             else:
                 raise_not_impl()
             if upsampling.lower() in ["none", None]:
@@ -443,6 +476,10 @@ def load_architecture(task, data_module, architecture, upsampling):
                 else:
                     model = nn.Sequential(
                         UnetUpsampling((out_height, out_width), in_channels, bilinear=False), backbone
+                    )
+            elif upsampling.lower()[:4] == "spherical":
+                    model = nn.Sequential(
+                        SphereUpsampling((out_height, out_width), in_channels), backbone
                     )
             else:
                 raise_not_impl()
