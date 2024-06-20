@@ -140,3 +140,4 @@ outputs/
 
 # files
 # .gitignore
+*.sif
