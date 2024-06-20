@@ -49,7 +49,7 @@ def load_model_module(
     train_target_transform: Optional[Union[str, Callable]] = None,
     val_target_transform: Optional[Iterable[Union[str, Callable]]] = None,
     test_target_transform: Optional[Iterable[Union[str, Callable]]] = None,
-    path_to_elevation: Optional[str] = "/app/data/elevation.nc",
+    path_to_elevation: Optional[str] = "/trinity/home/v.shevchenko/BiasCorrectionDL/data/elevation.nc",
 ):
     # Temporary fix, per this discussion:
     # https://github.com/aditya-grover/climate-learn/pull/100#discussion_r1192812343

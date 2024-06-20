@@ -18,18 +18,18 @@ from src.climate_learn.data.processing.era5_constants import (
 
 torch.set_float32_matmul_precision("high")
 
-@hydra.main(config_path="/app/configs/train", config_name="cmip6-era5-d")
+@hydra.main(version_base="1.1", config_path=os.path.join(os.getcwd(), "configs/train"), config_name="cmip6-era5-d")
 def main(cfg: DictConfig):
     # Construct dynamic experiment name
     experiment_name = construct_experiment_name(cfg)
-    default_root_dir  = os.path.join(cfg.base_dir, experiment_name)
+    default_root_dir  = os.path.join(os.getcwd(), cfg.base_dir, experiment_name)
 
     # Set the seed for reproducibility
     pl.seed_everything(cfg.training.seed)
 
     dm = setup_data_module(cfg)
     model = setup_model(dm, cfg)
-    trainer = setup_trainer(cfg, default_root_dir )
+    trainer = setup_trainer(cfg, default_root_dir)
 
     # Train and evaluate model from scratch
     if cfg.training.checkpoint is None:
@@ -63,18 +63,17 @@ def construct_experiment_name(config):
 def setup_data_module(config):
     in_vars = config.data.in_variables
     out_vars = config.data.out_variables
-    
     # if config.model.architecture == "diffusion":
     #     out_vars = config.data.out_variables
     #     for var in out_vars:
     #         in_vars.remove(var)
     #     in_vars = out_vars + in_vars
     #     assert out_vars == in_vars[:len(out_vars)], "Out variables' names (`out_vars`) must be placed in the beginning of `in_vars`"
-        
+
     dm = IterDataModule(
         task="downscaling",
-        inp_root_dir=config.data.cmip6_low_res_dir,
-        out_root_dir=config.data.era5_high_res_dir,
+        inp_root_dir=os.path.join(os.getcwd(), config.data.cmip6_low_res_dir),
+        out_root_dir=os.path.join(os.getcwd(), config.data.era5_high_res_dir),
         in_vars=in_vars,
         out_vars=out_vars,
         subsample=config.data.subsample,
@@ -106,7 +105,7 @@ def setup_model(dm, config):
     return model
 
 def setup_trainer(config, default_root_dir):
-    logger = TensorBoardLogger(save_dir=f"{default_root_dir }/logs")
+    logger = TensorBoardLogger(save_dir=f"{default_root_dir}/logs")
     early_stopping = config.training.early_stopping
     callbacks = [
         RichProgressBar(),
@@ -131,8 +130,9 @@ def setup_trainer(config, default_root_dir):
         logger=logger,
         callbacks=callbacks,
         default_root_dir=default_root_dir ,
-        accelerator="gpu",
-        devices=config.training.gpus,
+        accelerator="auto",
+        devices="auto",
+        strategy="auto",
         max_epochs=config.training.max_epochs,
         precision=config.training.precision,
     )
