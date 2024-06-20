@@ -97,6 +97,7 @@ class GaussianDiffusion(nn.Module):
         history=1,
         timesteps=1000,
         beta_schedule="cosine",
+        res_rescale=2,
     ):  # deleted arguments denoise_fn, rrdb_net
         super().__init__()
         self.hidden_size = 64
@@ -110,6 +111,7 @@ class GaussianDiffusion(nn.Module):
             out_dim=out_channels,
             cond_dim=self.rrdb_num_feat,
             dim_mults=self.dim_mults,
+            res_rescale=res_rescale,
         )
         self.upscaler = Interpolation((out_height, out_width), mode="bicubic")
         # condition net
@@ -121,6 +123,7 @@ class GaussianDiffusion(nn.Module):
             self.rrdb_num_feat,
             self.rrdb_num_block,  # here is the number of input channels - 3
             self.rrdb_num_feat // 2,
+            res_rescale,
         )
         # auxiliary losses
         self.aux_l1_loss = True
@@ -137,7 +140,7 @@ class GaussianDiffusion(nn.Module):
         # residual related
         self.res = True
         self.clip_input = True
-        self.res_rescale = 2.0
+        self.res_rescale = res_rescale
 
         if self.beta_schedule == "cosine":
             betas = cosine_beta_schedule(timesteps, s=self.beta_s)
