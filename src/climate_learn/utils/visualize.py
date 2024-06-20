@@ -13,6 +13,8 @@ def visualize_at_index(mm, dm, in_transform, out_transform, variable, src, index
     channel = dm.hparams.out_vars.index(variable)
     history = dm.hparams.history
     if src == "era5":
+        if variable not in ERA5_VAR_TO_UNIT:
+            variable = '_'.join(variable.split('_')[:-1])
         variable_with_units = f"{variable} ({ERA5_VAR_TO_UNIT[variable]})"
     elif src == "cmip6":
         variable_with_units = f"{variable} ({CMIP6_VAR_TO_UNIT[variable]})"
@@ -124,6 +126,8 @@ def visualize_mean_bias(dm, mm, out_transform, variable, src):
     extent = [lon.min(), lon.max(), lat.min(), lat.max()]
     channel = dm.hparams.out_vars.index(variable)
     if src == "era5":
+        if variable not in ERA5_VAR_TO_UNIT:
+            variable = '_'.join(variable.split('_')[:-1])
         variable_with_units = f"{variable} ({ERA5_VAR_TO_UNIT[variable]})"
     elif src == "cmip6":
         variable_with_units = f"{variable} ({CMIP6_VAR_TO_UNIT[variable]})"
