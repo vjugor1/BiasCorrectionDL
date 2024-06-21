@@ -20,15 +20,19 @@ class RRDBNet(nn.Module):
         self.conv_first = nn.Conv2d(in_nc, nf, 3, 1, 1, bias=True)
         self.RRDB_trunk = make_layer(RRDB_block_f, nb)
         self.trunk_conv = nn.Conv2d(nf, nf, 3, 1, 1, bias=True)
+        
         #### upsampling
         # self.upconv_list = [nn.Conv2d(nf, nf, 3, 1, 1, bias=True) for i in range(int(math.log2(self.sr_scale)))]
-        self.upconv1 = nn.Conv2d(nf, nf, 3, 1, 1, bias=True)
+        # self.upconv1 = nn.Conv2d(nf, nf, 3, 1, 1, bias=True)
         # self.upconv2 = nn.Conv2d(nf, nf, 3, 1, 1, bias=True)
         # if self.sr_scale == 8:
         #     self.upconv3 = nn.Conv2d(nf, nf, 3, 1, 1, bias=True)
+        self.upconv_layers = nn.ModuleList()
+        for _ in range(int(math.log2(self.sr_scale))):
+            self.upconv_layers.append(nn.Conv2d(nf, nf, 3, 1, 1, bias=True))
+        
         self.HRconv = nn.Conv2d(nf, nf, 3, 1, 1, bias=True)
         self.conv_last = nn.Conv2d(nf, out_nc, 3, 1, 1, bias=True)
-
         self.lrelu = nn.LeakyReLU(negative_slope=0.2)
 
     def forward(self, x, get_fea=False):
@@ -44,14 +48,19 @@ class RRDBNet(nn.Module):
 
         # for upconv in self.upconv_list:
         #     fea = self.lrelu(upconv(F.interpolate(fea, scale_factor=2, mode='nearest')))
-        fea = self.lrelu(self.upconv1(F.interpolate(fea, scale_factor=2, mode='nearest')))
+        # fea = self.lrelu(self.upconv1(F.interpolate(fea, scale_factor=2, mode='nearest')))
         # fea = self.lrelu(self.upconv2(F.interpolate(fea, scale_factor=2, mode='nearest')))
         # if self.sr_scale == 8:
         #     fea = self.lrelu(self.upconv3(F.interpolate(fea, scale_factor=2, mode='nearest')))
+        
+        # Upsampling
+        for upconv in self.upconv_layers:
+            fea = self.lrelu(upconv(F.interpolate(fea, scale_factor=2, mode='nearest')))
+        
         fea_hr = self.HRconv(fea)
         out = self.conv_last(self.lrelu(fea_hr))
-        out = out.clamp(0, 1)
-        out = out * 2 - 1
+        out = out.clamp(0, 1) * 2 - 1
+        
         if get_fea:
             return out, feas
         else:
