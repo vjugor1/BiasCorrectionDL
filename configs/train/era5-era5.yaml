@@ -17,8 +17,8 @@ data:
   out_variables: ["2m_temperature", "geopotential_500", "temperature_850"]
 
 model:
-  # Model architecture options: "resnet", "unet", "vit", "samvit", "ynet", "deepsd", "diffusion"
-  architecture: "vit"
+  # Model architecture options: "resnet", "unet", "vit", "samvit", "ynet", "deepsd", "diffusion", "unet_sphere"
+  architecture: "unet_sphere"
   # Upsampling method options: "bilinear", "bicubic", "unet_upsampling", "unet_upsampling_bilinear", "none"
   # NOTE: Some models (e.g. ynet) do not support input upsampling, so they need this parameter set "none"
   upsampling: "bilinear"

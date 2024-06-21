@@ -4,7 +4,7 @@ data:
   era5_low_res_dir: "/app/data/ClimateLearn/processed/weatherbench/era5/5.625deg"
   era5_high_res_dir: "/app/data/ClimateLearn/processed/weatherbench/era5/2.8125deg"
   subsample: 1
-  batch_size: 64
+  batch_size: 128
   buffer_size: 10000
   num_workers: 4
   # Available variables: 
