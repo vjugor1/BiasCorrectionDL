@@ -376,15 +376,18 @@ class VGGLoss(Metric):
         # vgg_std = (0.229, 0.224, 0.225)
         #self.sub_mean = common.MeanShift(rgb_range, vgg_mean, vgg_std)
         self.vgg.requires_grad = False
+    def vgg_over_triplicated_channels(self, x, reducer = sum):
+        n_channels = x.shape[1]
+        return reducer([self.vgg(x[:, c, :, :].unsqueeze(1).repeat(1, 3, 1, 1).float()) for c in range(n_channels)])
     def __call__(
         self,
         pred: Union[torch.FloatTensor, torch.DoubleTensor],
         target: Union[torch.FloatTensor, torch.DoubleTensor],
     ) -> Union[torch.FloatTensor, torch.DoubleTensor]:
-        vgg_sr = self.vgg(pred.float())
+        vgg_sr = self.vgg_over_triplicated_channels(pred.float())
 
         with torch.no_grad():
-            vgg_hr = self.vgg(target.float().detach())
+            vgg_hr = self.vgg_over_triplicated_channels(target.float().detach())#self.vgg(target.float().detach())
 
         loss = F.mse_loss(vgg_sr, vgg_hr)
         
