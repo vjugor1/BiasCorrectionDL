@@ -8,6 +8,9 @@ from .functional import *
 # Third party
 import numpy as np
 import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import torchvision
 
 
 class Metric:
@@ -355,3 +358,34 @@ class MeanBias(Metric):
         :rtype: torch.FloatTensor|torch.DoubleTensor
         """
         return mean_bias(pred, target, self.aggregate_only)
+
+@register("perceptual")
+class VGGLoss(Metric):
+    """Computes perceptual loss with VGG16"""
+    def __init__(self, aggregate_only: bool = False, metainfo: Optional[MetricsMetaInfo] = None, device: torch.cuda.device = 0):
+        super().__init__(aggregate_only, metainfo)
+        vgg_features = torchvision.models.vgg19(pretrained=True).features
+        modules = [m for m in vgg_features]
+        
+        # if conv_index == '22':
+        #     self.vgg = nn.Sequential(*modules[:8])
+        # elif conv_index == '54':
+        #     self.vgg = nn.Sequential(*modules[:35])
+        self.vgg = nn.Sequential(*modules[:35]).to(device)
+        # vgg_mean = (0.485, 0.456, 0.406)
+        # vgg_std = (0.229, 0.224, 0.225)
+        #self.sub_mean = common.MeanShift(rgb_range, vgg_mean, vgg_std)
+        self.vgg.requires_grad = False
+    def __call__(
+        self,
+        pred: Union[torch.FloatTensor, torch.DoubleTensor],
+        target: Union[torch.FloatTensor, torch.DoubleTensor],
+    ) -> Union[torch.FloatTensor, torch.DoubleTensor]:
+        vgg_sr = self.vgg(pred.float())
+
+        with torch.no_grad():
+            vgg_hr = self.vgg(target.float().detach())
+
+        loss = F.mse_loss(vgg_sr, vgg_hr)
+        
+        return loss + mse(pred, target, self.aggregate_only)

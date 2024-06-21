@@ -96,7 +96,10 @@ def visualize_at_index(mm, dm, in_transform, out_transform, variable, src, index
     plt.show()
 
     # None, if no history
-    return anim
+    if history > 1:
+        return anim
+    else:
+        return ppred, yy
 
 
 def visualize_sample(img, extent, title):
