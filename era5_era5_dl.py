@@ -29,7 +29,7 @@ def main(cfg: DictConfig):
 
     dm = setup_data_module(cfg)
     model = setup_model(dm, cfg)
-    trainer = setup_trainer(cfg, default_root_dir )
+    trainer = setup_trainer(cfg, default_root_dir)
 
     # Train and evaluate model from scratch
     if cfg.training.checkpoint is None:
@@ -111,7 +111,7 @@ def setup_model(dm, config):
     return model
 
 def setup_trainer(config, default_root_dir):
-    logger = TensorBoardLogger(save_dir=f"{default_root_dir }/logs")
+    logger = TensorBoardLogger(save_dir=f"{default_root_dir}/logs")
     early_stopping = config.training.early_stopping
     callbacks = [
         RichProgressBar(),
@@ -135,7 +135,7 @@ def setup_trainer(config, default_root_dir):
         enable_progress_bar=True,
         logger=logger,
         callbacks=callbacks,
-        default_root_dir=default_root_dir ,
+        default_root_dir=default_root_dir,
         accelerator="gpu",
         devices=config.training.gpus,
         max_epochs=config.training.max_epochs,

@@ -13,12 +13,10 @@ from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 
 from src.climate_learn import (IterDataModule, LitModule,
                                load_downscaling_module)
-from src.climate_learn.data.processing.era5_constants import (
-    DEFAULT_PRESSURE_LEVELS, PRESSURE_LEVEL_VARS)
 
-torch.set_float32_matmul_precision("high")
+torch.set_float32_matmul_precision("medium")
 
-@hydra.main(config_path="/app/configs/train", config_name="cmip6-era5-d")
+@hydra.main(config_path=os.path.join(os.getcwd(), "configs/train"), config_name="cmip6-era5-d")
 def main(cfg: DictConfig):
     # Construct dynamic experiment name
     experiment_name = construct_experiment_name(cfg)
@@ -29,7 +27,7 @@ def main(cfg: DictConfig):
 
     dm = setup_data_module(cfg)
     model = setup_model(dm, cfg)
-    trainer = setup_trainer(cfg, default_root_dir )
+    trainer = setup_trainer(cfg, default_root_dir)
 
     # Train and evaluate model from scratch
     if cfg.training.checkpoint is None:
@@ -106,7 +104,7 @@ def setup_model(dm, config):
     return model
 
 def setup_trainer(config, default_root_dir):
-    logger = TensorBoardLogger(save_dir=f"{default_root_dir }/logs")
+    logger = TensorBoardLogger(save_dir=f"{default_root_dir}/logs")
     early_stopping = config.training.early_stopping
     callbacks = [
         RichProgressBar(),
@@ -127,10 +125,11 @@ def setup_trainer(config, default_root_dir):
         LearningRateMonitor(logging_interval="epoch"),
     ]
     trainer = pl.Trainer(
+        accumulate_grad_batches=4,
         enable_progress_bar=True,
         logger=logger,
         callbacks=callbacks,
-        default_root_dir=default_root_dir ,
+        default_root_dir=default_root_dir,
         accelerator="gpu",
         devices=config.training.gpus,
         max_epochs=config.training.max_epochs,

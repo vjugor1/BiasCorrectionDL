@@ -9,18 +9,18 @@ import pytorch_lightning as pl
 from src.climate_learn import load_downscaling_module
 from src.climate_learn.data import IterDataModule
 
-torch.set_float32_matmul_precision("high")
+torch.set_float32_matmul_precision("medium")
 
 parser = ArgumentParser()
 parser.add_argument(
     "--cmip6_low_res_dir",
     type=str,
-    default="/app/data/processed/cmip6/3H",
+    default="/app/data/processed/cmip6-era5/cmip6/D",
 )
 parser.add_argument(
     "--era5_high_res_dir",
     type=str,
-    default="/app/data/processed/era5_0.25deg/3H",
+    default="/app/data/processed/cmip6-era5/era5_0.25/D",
 )
 parser.add_argument(
     "--in_vars",
@@ -29,9 +29,8 @@ parser.add_argument(
         "air_temperature",
         "u_component_of_wind",
         "v_component_of_wind",
-        "surface_pressure",
         "precipitation",
-    ],  
+    ],
 )
 parser.add_argument(
     "--out_vars",
@@ -40,7 +39,6 @@ parser.add_argument(
         "2m_temperature",
         "10m_u_component_of_wind",
         "10m_v_component_of_wind",
-        "surface_pressure",
         "total_precipitation",
     ],
 )

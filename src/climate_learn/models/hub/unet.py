@@ -30,7 +30,7 @@ class Unet(nn.Module):
         dropout: float = 0.1,
         ch_mults: Iterable[int] = (1, 2, 2, 4),
         is_attn: Iterable[bool] = (False, False, False, False),
-        mid_attn: bool = True,
+        mid_attn: bool = False,
         n_blocks: int = 2,
     ) -> None:
         super().__init__()
