@@ -1,6 +1,6 @@
 # Standard library
 import os
-from omegaconf import DictConfig, OmegaConf
+from omegaconf import DictConfig
 import hydra
 
 import pytorch_lightning as pl
@@ -13,10 +13,8 @@ from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 
 from src.climate_learn import (IterDataModule, LitModule,
                                load_downscaling_module)
-from src.climate_learn.data.processing.era5_constants import (
-    DEFAULT_PRESSURE_LEVELS, PRESSURE_LEVEL_VARS)
 
-torch.set_float32_matmul_precision("high")
+torch.set_float32_matmul_precision("medium")
 
 @hydra.main(version_base="1.1", config_path=os.path.join(os.getcwd(), "configs/train"), config_name="cmip6-era5-d")
 def main(cfg: DictConfig):
@@ -63,7 +61,8 @@ def construct_experiment_name(config):
 def setup_data_module(config):
     in_vars = config.data.in_variables
     out_vars = config.data.out_variables
-    # if config.model.architecture == "diffusion":
+    
+    # if config.model.architecture in ["diffusion", "dcgan"]:
     #     out_vars = config.data.out_variables
     #     for var in out_vars:
     #         in_vars.remove(var)
@@ -126,10 +125,11 @@ def setup_trainer(config, default_root_dir):
         LearningRateMonitor(logging_interval="epoch"),
     ]
     trainer = pl.Trainer(
+        accumulate_grad_batches=config.training.accumulate_grad_batches,
         enable_progress_bar=True,
         logger=logger,
         callbacks=callbacks,
-        default_root_dir=default_root_dir ,
+        default_root_dir=default_root_dir,
         accelerator="auto",
         devices="auto",
         strategy="auto",

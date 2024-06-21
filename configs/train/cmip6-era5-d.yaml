@@ -1,10 +1,10 @@
-base_dir: "/trinity/home/v.shevchenko/BiasCorrectionDL/data/experiments/downscaling-CMIP-ERA-D"
+base_dir: "/trinity/home/aleksandr.lukashevich/BiasCorrectionDL/data/experiments/downscaling-CMIP-ERA-D"
 
 data:
-  cmip6_low_res_dir: "/trinity/home/v.shevchenko/BiasCorrectionDL/data/processed/cmip6-era5/cmip6/D"
-  era5_high_res_dir: "/trinity/home/v.shevchenko/BiasCorrectionDL/data/processed/cmip6-era5/era5_0.25/D"
+  cmip6_low_res_dir: "/trinity/home/aleksandr.lukashevich/BiasCorrectionDL/data/processed/cmip6-era5/cmip6/D"
+  era5_high_res_dir: "/trinity/home/aleksandr.lukashevich/BiasCorrectionDL/data/processed/cmip6-era5/era5_0.25/D"
   subsample: 1
-  batch_size: 16
+  batch_size: 1
   buffer_size: 2000
   num_workers: 1
   # Available variables: 
@@ -15,19 +15,20 @@ data:
 
 model:
   # Model architecture options: "resnet", "unet", "vit", "samvit", "ynet", "deepsd", "diffusion"
-  architecture: "deepsdsphere"
+  architecture: "resnet"
   # Upsampling method options: "bilinear", "bicubic", "unet_upsampling", "unet_upsampling_bilinear", "none"
   # NOTE: Some models (e.g. ynet) do not support input upsampling, so they need this parameter set "none"
-  upsampling: "none"
+  upsampling: "bilinear"
 
 training:
+  accumulate_grad_batches: 16
   summary_depth: 1
   max_epochs: 50
   patience: 5
   learning_rate: 1e-5
   warmup_epochs: 5
   # GPU devices to use (e.g., [0] for single GPU, [0, 1] for multiple GPUs)
-  gpus: [0,1,2,3]
+  gpus: [0,1]
   checkpoint: null
   # Early stopping configuration
   early_stopping: "val/mse:aggregate"
