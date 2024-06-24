@@ -98,7 +98,12 @@ class IterDataModule(pl.LightningDataModule):
         self.data_train: Optional[IterableDataset] = None
         self.data_val: Optional[IterableDataset] = None
         self.data_test: Optional[IterableDataset] = None
-
+        
+        if os.path.isfile(os.path.join(self.hparams.out_root_dir, "mask.npy")):
+            self.out_mask = torch.from_numpy(
+                np.load(os.path.join(self.hparams.out_root_dir, "mask.npy"))
+            )
+        
     def get_lat_lon(self):
         lat = np.load(os.path.join(self.hparams.out_root_dir, "lat.npy"))
         lon = np.load(os.path.join(self.hparams.out_root_dir, "lon.npy"))
@@ -126,8 +131,8 @@ class IterDataModule(pl.LightningDataModule):
                     self.hparams.batch_size,
                     self.hparams.history,
                     len(self.hparams.in_vars),
-                    lat,
-                    lon,
+                    in_lat,                           ### DT modified
+                    in_lon,
                 ]
             )
         elif self.hparams.task == "downscaling":
@@ -140,7 +145,7 @@ class IterDataModule(pl.LightningDataModule):
             out_vars.remove("2m_temperature_extreme_mask")
         out_size = torch.Size([self.hparams.batch_size, len(out_vars), out_lat, out_lon])
         return in_size, out_size
-
+   
     def get_normalize(self, root_dir, variables):
         normalize_mean = dict(np.load(os.path.join(root_dir, "normalize_mean.npz")))
         normalize_std = dict(np.load(os.path.join(root_dir, "normalize_std.npz")))
@@ -157,6 +162,7 @@ class IterDataModule(pl.LightningDataModule):
             out_transforms[key] = self.output_transforms[key]
         return out_transforms
 
+
     def get_climatology(self, split="val"):
         path = os.path.join(self.hparams.out_root_dir, split, "climatology.npz")
         clim_dict = np.load(path)
@@ -168,7 +174,8 @@ class IterDataModule(pl.LightningDataModule):
                 np.squeeze(clim_dict[var].astype(np.float32), axis=0)
             )
         return new_clim_dict
-
+    
+    
     def setup(self, stage: Optional[str] = None):
         # load datasets only if they're not loaded already
         if stage != "test":
@@ -240,6 +247,7 @@ class IterDataModule(pl.LightningDataModule):
                 subsample=self.hparams.subsample,
             )
 
+        
     def train_dataloader(self):
         return DataLoader(
             self.data_train,
@@ -271,7 +279,7 @@ class IterDataModule(pl.LightningDataModule):
             pin_memory=self.hparams.pin_memory,
             collate_fn=self.collate_fn,
         )
-
+        
 
 def collate_fn(batch):
     def handle_dict_features(t: Dict[str, torch.tensor]) -> torch.tensor:
