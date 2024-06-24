@@ -28,7 +28,7 @@ training:
   warmup_epochs: 5
   # GPU devices to use (e.g., [0] for single GPU, [0, 1] for multiple GPUs)
   gpus: [3]
-  checkpoint: null
+  checkpoint: "/app/data/experiments/downscaling-CMIP-ERA-D/deepsdsphere_multi_none_777/logs/version_4/checkpoints/epoch_000.ckpt"
   # Early stopping configuration
   early_stopping: "val/mse:aggregate"
   min_delta: 1e-4

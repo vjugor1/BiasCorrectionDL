@@ -13,9 +13,10 @@ from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 
 from src.climate_learn import (IterDataModule, LitModule,
                                load_downscaling_module)
+from src.climate_learn.models.module import DeepSDLitModule
 from src.climate_learn.data.processing.era5_constants import (
     DEFAULT_PRESSURE_LEVELS, PRESSURE_LEVEL_VARS)
-
+from src.climate_learn.utils.gis import prepare_ynet_climatology, prepare_deepsd_elevation
 torch.set_float32_matmul_precision("high")
 
 @hydra.main(config_path="/app/configs/train", config_name="cmip6-era5-d")
@@ -37,16 +38,31 @@ def main(cfg: DictConfig):
         trainer.test(model, datamodule=dm, ckpt_path="best")
     # Evaluate saved model checkpoint
     else:
-        model = LitModule.load_from_checkpoint(
-            cfg.training.checkpoint,
-            net=model.net,
-            optimizer=model.optimizer,
-            lr_scheduler=None,
-            train_loss=None,
-            val_loss=None,
-            test_loss=model.test_loss,
-            test_target_transforms=model.test_target_transforms,
-        )
+        if (cfg.model.architecture == 'deepsd') or (cfg.model.architecture == 'deepsdsphere'):
+            path_to_elevation = "/app/data/elevation.nc"
+            elevation_list = prepare_deepsd_elevation(dm, path_to_elevation)
+            model = DeepSDLitModule.load_from_checkpoint(
+                cfg.training.checkpoint,
+                net=model.net,
+                optimizer=model.optimizer,
+                lr_scheduler=None,
+                train_loss=None,
+                val_loss=None,
+                test_loss=model.test_loss,
+                test_target_transforms=model.test_target_transforms,
+                elevation=elevation_list
+            )
+        else:
+            model = LitModule.load_from_checkpoint(
+                cfg.training.checkpoint,
+                net=model.net,
+                optimizer=model.optimizer,
+                lr_scheduler=None,
+                train_loss=None,
+                val_loss=None,
+                test_loss=model.test_loss,
+                test_target_transforms=model.test_target_transforms,
+            )
         trainer.test(model, datamodule=dm)
 
 def construct_experiment_name(config):
