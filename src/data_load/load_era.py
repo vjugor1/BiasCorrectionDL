@@ -37,9 +37,9 @@ def run_zarr_load(cfg: DictConfig):
                 # "2m_temperature",
                 # "minimum_temperature",
                 # "maximum_temperature",
-                "rainfall",
-                # "land_sea_mask",
-                # "geopotential_at_surface"
+                # "rainfall",
+                "land_sea_mask",
+                "geopotential_at_surface"
         ]
         
         # Transform longitude to fit with other data
@@ -145,7 +145,7 @@ def run_zarr_load(cfg: DictConfig):
     ds_const = xr.combine_by_coords(const_var)
     print(ds_const)
     # Add latitude as new variable
-    ds_const["lat"] = xr.DataArray(data = np.array([ds_const['latitude']]*len(ds_const["longitude"])).T, coords=ds_const.coords)
+    ds_const["lat_grid"] = xr.DataArray(data = np.array([ds_const['latitude']]*len(ds_const["longitude"])).T, coords=ds_const.coords)
     ds_const.to_netcdf(const_path, mode='w')     
           
     logging.info("Download finished.")
