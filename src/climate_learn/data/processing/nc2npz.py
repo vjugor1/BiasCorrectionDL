@@ -96,7 +96,7 @@ def nc2np(path,
             constants_path
         )
         # Avoid odd length of lat/lon
-        if any([len(constants["latitude"]), len(constants["longitude"])])%2==1:
+        if any(len(ax)%2==1 for ax in list(constants.coords)):
             regridder_const, _ = regrid(constants, periodic=periodic)
             constants = regridder_const(constants, keep_attrs=True)
         
@@ -272,7 +272,7 @@ def regrid(ds_in: xr.Dataset,
         ds_target=ds_in
     elif "cmip6-era5" in align_target:
         var=glob.glob(os.path.join(align_target, "*"))[0].split("/")[-1]
-        ds_target = open_eobs(align_target, var)
+        ds_target = open_era(align_target, var)
     elif "era5-eobs" in align_target:
         var = glob.glob(os.path.join(align_target, "*"))[0].split("/")[-1]
         ds_target = open_era(align_target, var)

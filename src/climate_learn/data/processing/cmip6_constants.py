@@ -7,7 +7,7 @@ NAME_TO_VAR = {
     "air_temperature": "tas",
     "precipitation": "pr",
     "orography": "geopotential_at_surface",
-    "latitude": "latitude",
+    "latitude": "lat_grid",
     "land_sea_mask": "land_sea_mask",
     "cloud_cover": "clt",
     "upward_heat_flux": "hfls",

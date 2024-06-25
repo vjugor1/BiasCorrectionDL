@@ -4,7 +4,8 @@ import xesmf
 
 SCALE_FACTOR = 4
 PATH_SRC = "/app/data/raw/cmip6-era5/era5_0.25/constants.nc"
-PATH_SAVE= "/app/data/raw/cmip6-era5/cmip6/constants.nc"
+# PATH_SAVE= "/app/data/raw/era5-eobs/era5_0.25_D/constants.nc"
+PATH_SAVE= "/app/data/raw/constants.nc"
 
 def regrid(path_in, path_out, scale_factor, periodic=True):
     ds = xr.open_mfdataset(
@@ -34,10 +35,11 @@ def regrid(path_in, path_out, scale_factor, periodic=True):
                                 periodic=True
                                 )
     ds_regrid = regridder(ds, keep_attrs=True)
-    ds_regrid["latitude"] = xr.DataArray(
+    ds_regrid["lat_grid"] = xr.DataArray(
                         data = np.array([ds_regrid['lat']]*len(ds_regrid["lon"])).T,
                         coords=ds_regrid.coords
                         )
+    ds_regrid = ds_regrid.rename({'lon': 'longitude', 'lat': 'latitude'})
     ds_regrid.to_netcdf(path_out)
         
         
