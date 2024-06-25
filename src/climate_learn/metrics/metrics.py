@@ -355,3 +355,53 @@ class MeanBias(Metric):
         :rtype: torch.FloatTensor|torch.DoubleTensor
         """
         return mean_bias(pred, target, self.aggregate_only)
+
+
+@register("l1")
+class L1(Metric):
+    """Computes L1 loss."""
+
+    def __call__(
+        self,
+        pred: Union[torch.FloatTensor, torch.DoubleTensor],
+        target: Union[torch.FloatTensor, torch.DoubleTensor],
+    ) -> Union[torch.FloatTensor, torch.DoubleTensor]:
+        r"""
+        .. highlight:: python
+
+        :param pred: The predicted values of shape [B,C,H,W].
+        :type pred: torch.FloatTensor|torch.DoubleTensor
+        :param target: The ground truth target values of shape [B,C,H,W].
+        :type target: torch.FloatTensor|torch.DoubleTensor
+
+        :return: A singleton tensor if `self.aggregate_only` is `True`. Else, a
+            tensor of shape [C+1], where the last element is the aggregate
+            MSE, and the preceding elements are the channel-wise L1 losses.
+        :rtype: torch.FloatTensor|torch.DoubleTensor
+        """
+        return l1(pred, target, self.aggregate_only)
+    
+
+@register("bce")
+class BCE(Metric):
+    """Computes binary cross entropy loss."""
+
+    def __call__(
+        self,
+        pred: Union[torch.FloatTensor, torch.DoubleTensor],
+        target: Union[torch.FloatTensor, torch.DoubleTensor],
+    ) -> Union[torch.FloatTensor, torch.DoubleTensor]:
+        r"""
+        .. highlight:: python
+
+        :param pred: The predicted values of shape [B,C,H,W].
+        :type pred: torch.FloatTensor|torch.DoubleTensor
+        :param target: The ground truth target values of shape [B,C,H,W].
+        :type target: torch.FloatTensor|torch.DoubleTensor
+
+        :return: A singleton tensor if `self.aggregate_only` is `True`. Else, a
+            tensor of shape [C+1], where the last element is the aggregate
+            BCE, and the preceding elements are the channel-wise BCEs.
+        :rtype: torch.FloatTensor|torch.DoubleTensor
+        """
+        return bce(pred, target, self.aggregate_only)
