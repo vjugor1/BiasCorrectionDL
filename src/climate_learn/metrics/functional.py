@@ -27,24 +27,6 @@ def mse(
 
 
 @handles_probabilistic
-def l1(
-    pred: Pred,
-    target: Union[torch.FloatTensor, torch.DoubleTensor],
-    aggregate_only: bool = False,
-    lat_weights: Optional[Union[torch.FloatTensor, torch.DoubleTensor]] = None,
-) -> Union[torch.FloatTensor, torch.DoubleTensor]:
-    error = (pred - target).abs()
-    if lat_weights is not None:
-        error = error * lat_weights
-    per_channel_losses = error.mean([0, 2, 3])
-    loss = error.mean()
-    if aggregate_only:
-        return loss
-    return torch.cat((per_channel_losses, loss.unsqueeze(0)))
-    # return torch.nn.L1Loss()(pred, target)
-
-
-@handles_probabilistic
 def msess(
     pred: Pred,
     target: Union[torch.FloatTensor, torch.DoubleTensor],

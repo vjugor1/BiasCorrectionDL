@@ -2,9 +2,10 @@
 from typing import Any, Callable, Dict, Iterable, Optional, Union
 from functools import partial
 import warnings
+import numpy as np
 
 # Local application
-from .gis import prepare_ynet_climatology, prepare_deepsd_elevation
+from .gis import prepare_ynet_climatology, prepare_deepsd_elevation, prepare_dcgan_elevation
 from ..data import IterDataModule
 from ..models import LitModule, DiffusionLitModule, DeepSDLitModule, YnetLitModule, GANLitModule, MODEL_REGISTRY
 from ..models.hub import (
@@ -273,8 +274,7 @@ def load_model_module(
             elevation_list,
         )
     elif architecture == "gan":
-        normalized_clim = prepare_ynet_climatology(data_module, path_to_elevation, out_vars)
-        # elevation_list = prepare_deepsd_elevation(data_module, path_to_elevation)
+        elevation = prepare_dcgan_elevation(data_module, path_to_elevation)
         model_module = GANLitModule(
             model,
             optimizer,
@@ -285,7 +285,7 @@ def load_model_module(
             train_transform,
             val_transforms,
             test_transforms,
-            normalized_clim
+            elevation
 
         )
     else:
@@ -466,9 +466,11 @@ def load_architecture(task, data_module, architecture, upsampling,
                     out_channels,
                 )
             elif architecture == "gan":
+                scale_factor = out_height/in_height
                 backbone = DCGAN(
                     in_channels,
                     out_channels,
+                    scale_factor,
                     **model_kwargs
                 )
             else:
@@ -504,12 +506,12 @@ def load_architecture(task, data_module, architecture, upsampling,
                 optimizer = (optimizerG, optimizerD)
                 
                 lr_schedulerG = load_lr_scheduler(
-                                                "linear-warmup-cosine-annealing",
+                                                "lambdaLR",
                                                 optimizerG,
                                                 sched_kwargs
                                                 )
                 lr_schedulerD = load_lr_scheduler(
-                                                "linear-warmup-cosine-annealing",
+                                                "lambdaLR",
                                                 optimizerG,
                                                 sched_kwargs
                                                 )
@@ -567,11 +569,11 @@ def load_lr_scheduler(
         lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
             optimizer, **sched_kwargs
         )
-    # elif sched == "lambdaLR":
-    #     lrdecay_lambda = lambda epoch: cosine_decay(epoch, **sched_kwargs)
-    #     lr_scheduler = torch.optim.lr_scheduler.LambdaLR(
-    #         optimizer, lr_lambda=lrdecay_lambda
-    #     )
+    elif sched == "lambdaLR":
+        lrdecay_lambda = lambda epoch: cosine_decay(epoch, **sched_kwargs)
+        lr_scheduler = torch.optim.lr_scheduler.LambdaLR(
+            optimizer, lr_lambda=lrdecay_lambda
+        )
     else:
         raise NotImplementedError(
             f"{sched} is not an implemented learning rate scheduler. If you"
@@ -625,3 +627,9 @@ def get_climatology(data_module, split):
     if isinstance(clim, dict):
         clim = torch.stack(tuple(clim.values()))
     return clim
+
+def cosine_decay(epoch, warmup=100, max_epoch=10000):
+    if epoch <= warmup:
+        return (epoch / warmup)
+    else:
+        return 0.5 * (1 + np.cos((epoch - warmup)/max_epoch * np.pi))

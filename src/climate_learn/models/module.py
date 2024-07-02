@@ -379,23 +379,25 @@ class GANLitModule(LitModule):
         train_target_transform: Optional[Callable] = None,
         val_target_transforms: Optional[List[Union[Callable, None]]] = None,
         test_target_transforms: Optional[List[Union[Callable, None]]] = None,
-        x_aux: Optional[List[Union[torch.Tensor, None]]] = None,
+        elevation: Optional[List[Union[torch.Tensor, None]]] = None,
 
     ):
         super().__init__(net, optimizer, lr_scheduler,
                          train_loss, val_loss, test_loss,
-                         train_target_transform, val_target_transforms,
+                         train_target_transform,
+                         val_target_transforms,
                          test_target_transforms)
+        
+        self.net = net
         self.automatic_optimization = False
         self.train_loss = train_loss
         self.optimizer = optimizer
-        self.x_aux = x_aux
+        self.lr_scheduler = lr_scheduler
+        self.elevation = elevation
         
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        if self.x_aux is not None:
-            x_aux_expanded = self.x_aux[1].to(x.dtype).to(x.device)
-            x_aux_expanded = x_aux_expanded.unsqueeze(0)#\\.expand(x.size(0), *self.x_aux.size())
-            return self.net.generator(x, x_aux_expanded)
+        if self.elevation is not None:
+            return self.net.generator(x, elevation=self.elevation.to(x.device))
         return self.net.generator(x) 
 
     def training_step(
@@ -404,6 +406,7 @@ class GANLitModule(LitModule):
     ) -> torch.Tensor:
         x, y, in_variables, out_variables = batch
         optimizerG, optimizerD = self.optimizers()
+        lr_schedulerG, lr_schedulerD = self.lr_schedulers()
         lossG, lossD = self.train_loss
         
         # put on GPU because we created this tensor inside training_loop
@@ -411,37 +414,37 @@ class GANLitModule(LitModule):
         # Fake:0, valid:1
         valid = torch.ones(dsc_out_size).type_as(x)
         fake = torch.zeros(dsc_out_size).type_as(x)
-        
-        # You can map U ~ [0, 1) to U ~ [a, b) with u -> (b - a)*u + a
-        # Fake:[0, 0.1), valid:[0.9,1)
-        # valid = ((1-0.95)*torch.rand(dsc_out_size)+0.95).type_as(x)
-        # fake = ((0.05-0)*torch.rand(dsc_out_size)+0).type_as(x)
         disc_label  = torch.cat((valid, fake), dim=0).type_as(x)
         
         # generator optimize
         self.toggle_optimizer(optimizerG)
         pred = self(x)
-
-        with torch.no_grad():
-            # adv loss with BCEWithLogitsLoss
-            advs_loss = 0 - (torch.nn.Sigmoid()(self.net.discriminator(pred))).mean().log()
-            # adv loss with BCELoss
-            # advs_loss = 0 - ((self.net.discriminator(pred))).mean().log()
+        # advs_loss = lossD(self.net.discriminator(pred), valid)
+        advs_loss = lossD(torch.nn.Sigmoid()(self.net.discriminator(pred)), valid)
+        # with torch.no_grad():
+        #     # adv loss with BCEWithLogitsLoss
+        #     advs_loss = 0 - (torch.nn.Sigmoid()(self.net.discriminator(pred))).mean().log()
+        #     # adv loss with BCELoss
+        #     # advs_loss = 0 - ((self.net.discriminator(pred))).mean().log()
         cont_loss = lossG(pred, y) # content loss
         g_loss = self.net.wmse * cont_loss + advs_loss
+        
         self.manual_backward(g_loss)
-        optimizerG.step() 
+        optimizerG.step()
+        lr_schedulerG.step()
         optimizerG.zero_grad()
         self.untoggle_optimizer(optimizerG)
 
         # discriminator optimize
         self.toggle_optimizer(optimizerD)
         disc_in = torch.cat((y, pred.detach()), dim=0)
-        disc_out = self.net.discriminator(disc_in)
-        d_loss = lossD(disc_out, disc_label) # / 2 # slows down the rate relative to G
-
+        disc_out = torch.nn.Sigmoid()(self.net.discriminator(disc_in))
+        # disc_out = self.net.discriminator(disc_in)
+        d_loss = lossD(disc_out, disc_label) / 2 # slows down the rate relative to G
+        
         self.manual_backward(d_loss)
         optimizerD.step()
+        lr_schedulerD.step()
         optimizerD.zero_grad()
         self.untoggle_optimizer(optimizerD)
 
@@ -450,12 +453,16 @@ class GANLitModule(LitModule):
         self.log_dict(
                 losses,
                 prog_bar=True,
-                on_step=False,
+                on_step=True,
                 on_epoch=True,
                 batch_size=x.shape[0],
                 )
 
 
     def configure_optimizers(self):
-            optimizerG, optimizerD = self.optimizer
+        optimizerG, optimizerD = self.optimizer
+        if self.lr_scheduler is None:
             return [optimizerG, optimizerD], []
+        else:
+            schedulerG, schedulerD = self.lr_scheduler
+        return [optimizerG, optimizerD], [schedulerG, schedulerD]

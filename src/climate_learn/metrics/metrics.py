@@ -357,9 +357,9 @@ class MeanBias(Metric):
         return mean_bias(pred, target, self.aggregate_only)
 
 
-@register("l1")
-class L1(Metric):
-    """Computes L1 loss."""
+@register("mae")
+class MAE(Metric):
+    """Computes MAE loss."""
 
     def __call__(
         self,
@@ -379,7 +379,7 @@ class L1(Metric):
             MSE, and the preceding elements are the channel-wise L1 losses.
         :rtype: torch.FloatTensor|torch.DoubleTensor
         """
-        return l1(pred, target, self.aggregate_only)
+        return mae(pred, target, self.aggregate_only)
     
 
 @register("bce")

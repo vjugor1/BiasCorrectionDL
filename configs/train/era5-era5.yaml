@@ -12,13 +12,14 @@ data:
   # "2m_temperature", "10m_u_component_of_wind", "10m_v_component_of_wind",
   # "geopotential", "temperature", "relative_humidity", "specific_humidity",
   # "u_component_of_wind", "v_component_of_wind"
-  in_variables: ["land_sea_mask", "orography", "lattitude", "toa_incident_solar_radiation", "2m_temperature", "10m_u_component_of_wind", "10m_v_component_of_wind", "geopotential", "temperature", "relative_humidity", "specific_humidity", "u_component_of_wind", "v_component_of_wind"]
+  # in_variables: ["2m_temperature", "land_sea_mask", "orography", "lattitude", "10m_u_component_of_wind", "10m_v_component_of_wind"]
+  in_variables: ["2m_temperature", "land_sea_mask", "orography", "lattitude", "toa_incident_solar_radiation", "10m_u_component_of_wind", "10m_v_component_of_wind", "geopotential", "temperature", "relative_humidity", "specific_humidity", "u_component_of_wind", "v_component_of_wind"]
   # Output variables to predict. Options are: "2m_temperature", "geopotential_500", "temperature_850"
   out_variables: ["2m_temperature", "geopotential_500", "temperature_850"]
 
 model:
-  # Model architecture options: "resnet", "unet", "vit", "samvit", "ynet", "deepsd", "diffusion"
-  architecture: "diffusion"
+  # Model architecture options: "resnet", "unet", "vit", "samvit", "ynet", "deepsd", "diffusion", "gan"
+  architecture: "gan"
   # Upsampling method options: "bilinear", "bicubic", "unet_upsampling", "unet_upsampling_bilinear", "none"
   # NOTE: Some models (e.g. ynet) do not support input upsampling, so they need this parameter set "none"
   upsampling: "none"
@@ -26,11 +27,12 @@ model:
 training:
   summary_depth: 1
   max_epochs: 200
-  patience: 5
-  learning_rate: 1e-5
-  warmup_epochs: 5
+  patience: 10
+  learning_rate: 3e-4
+  warmup_epochs: 100
   # GPU devices to use (e.g., [0] for single GPU, [0, 1] for multiple GPUs)
-  gpus: [0]
+  gpus: [3]
+  wmse: 5
   checkpoint: null
   # Early stopping configuration
   early_stopping: "val/mse:aggregate"

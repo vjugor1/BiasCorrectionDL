@@ -270,11 +270,8 @@ def regrid(ds_in: xr.Dataset,
            ):
     if not align_target:
         ds_target=ds_in
-    elif "cmip6-era5" in align_target:
+    elif "era5" in align_target:
         var=glob.glob(os.path.join(align_target, "*"))[0].split("/")[-1]
-        ds_target = open_era(align_target, var)
-    elif "era5-eobs" in align_target:
-        var = glob.glob(os.path.join(align_target, "*"))[0].split("/")[-1]
         ds_target = open_era(align_target, var)
 
     if len(ds_target["latitude"])%2!=0:
@@ -330,6 +327,7 @@ def convert_nc2npz(
     test_years = range(start_test_year, end_year)
     os.makedirs(save_dir, exist_ok=True)
     
+    # Open random file to create regridder
     if src=="eobs":
         var = name_to_var_eobs[variables[0]]
         ds = open_eobs(root_dir, var)

@@ -45,6 +45,7 @@ class CAM(torch.nn.Module):
         else:
             return _attention * x
 
+
 # Spatial attention module 
 class SAM(torch.nn.Module):
     def __init__(self, in_ch, relu_a=0.01):
@@ -68,6 +69,7 @@ class SAM(torch.nn.Module):
             return _attention, _attention * x
         else:
             return _attention * x
+
 
 class inception_box(torch.nn.Module):
     def __init__(self, in_ch, o_ch, relu_a=0.01):
@@ -124,6 +126,43 @@ class inception_box(torch.nn.Module):
             
         return torch.cat([_out_conv1b1, _out_conv3b3, _out_conv5b5, _out_maxpool], 1)
 
+
+class attention_up_block(torch.nn.Module):
+    def __init__(self,
+                 in_ch,
+                 cam=False,
+                 sam=False):
+        super().__init__()
+        self.in_ch = in_ch
+        self.use_sam = sam
+        self.use_cam = cam
+    
+        if self.use_cam:
+            self.up_cam = CAM(in_ch = in_ch)
+        if self.use_sam:
+            self.up_sam = SAM(in_ch = in_ch)
+        self.up_ops =[
+                torch.nn.ConvTranspose2d(in_channels=in_ch, out_channels=in_ch, \
+                                            kernel_size=2, stride=2, padding=0),
+                torch.nn.LeakyReLU(negative_slope=0.01)]
+        
+    def forward(self, x, ret_att=False):
+        out_tmp = x
+        if self.use_cam:
+            out_tmp = self.up_cam(out_tmp)
+        if self.use_sam:
+            if ret_sam:
+                atten, out_tmp = self.up_sam(out_tmp, ret_att=True) 
+            else:
+                out_tmp = self.up_sam(out_tmp)
+        out_tmp = self.up_ops(out_tmp)
+        
+        if ret_sam:
+            return out_tmp, atten
+        else:
+            return out_tmp
+    
+    
 # spatial attention first
 class encodedGenerator(torch.nn.Module):
     def ceil(self, v):
@@ -147,6 +186,8 @@ class encodedGenerator(torch.nn.Module):
         self.norm_chs = 4 * self.ceil(in_ch/4)
         self.use_sam = sam
         self.use_cam = cam
+        self.scale_factor = scale_factor
+        
         self.in_norm_ops = [
             torch.nn.Conv2d(in_channels=out_ch, out_channels=self.norm_chs, \
                             kernel_size=1, stride=1, padding=0),
@@ -158,11 +199,13 @@ class encodedGenerator(torch.nn.Module):
                                          kernel_size=2, stride=2, padding=0),
             torch.nn.LeakyReLU(negative_slope=0.01), ]
         
-        self.up2_ops = [
-            torch.nn.ConvTranspose2d(in_channels=stage_chs[1], out_channels=stage_chs[1], \
-                                         kernel_size=2, stride=2, padding=0),
-            torch.nn.LeakyReLU(negative_slope=0.01), ]*int((scale_factor/2))
+        # self.up2_ops = [
+        #     torch.nn.ConvTranspose2d(in_channels=stage_chs[1], out_channels=stage_chs[1], \
+        #                                  kernel_size=2, stride=2, padding=0),
+        #     torch.nn.LeakyReLU(negative_slope=0.01), ]*int((scale_factor/2))
         
+        self.up_block=attention_up_block(stage_chs[1], self.use_cam, self.use_sam)
+            
         if use_ele:
             self.ele_ops = [
                 torch.nn.Conv2d(in_channels=1, out_channels=4, \
@@ -195,29 +238,26 @@ class encodedGenerator(torch.nn.Module):
         self.p1_inception4 = inception_box(in_ch = stage_chs[0], o_ch = stage_chs[0])
         self.up1_layers    = torch.nn.Sequential(*self.up1_ops)
         
-        # self.p2_inception1 = inception_box(in_ch = self.norm_chs, o_ch = stage_chs[1])
         self.p2_inception1 = inception_box(in_ch = stage_chs[0], o_ch = stage_chs[1])
         self.p2_inception2 = inception_box(in_ch = stage_chs[1], o_ch = stage_chs[1])
         self.p2_inception3 = inception_box(in_ch = stage_chs[1], o_ch = stage_chs[1])
         self.p2_inception4 = inception_box(in_ch = stage_chs[1], o_ch = stage_chs[1])
-        self.up2_layers    = torch.nn.Sequential(*self.up2_ops)
+        # self.up2_layers    = torch.nn.Sequential(*self.up2_ops)
 
         if self.use_cam:
             self.up1_cam = CAM(in_ch = stage_chs[0] + cvar_ch*ncvar)
-            self.up2_cam = CAM(in_ch = stage_chs[1])
+            # self.up2_cam = CAM(in_ch = stage_chs[1])
 
         if self.use_sam:
             self.up1_sam = SAM(in_ch = stage_chs[0])
-            self.up2_sam = SAM(in_ch = stage_chs[1])
+            # self.up2_sam = SAM(in_ch = stage_chs[1])
 
         if use_ele:
             self.ele_layers = torch.nn.Sequential(*self.ele_ops)
-            # self.p3_inception1 = inception_box(in_ch = 8+stage_chs[1], o_ch = stage_chs[2])
-            self.p3_inception1 = inception_box(in_ch = 8+stage_chs[1], o_ch = stage_chs[1])
+            self.p3_inception1 = inception_box(in_ch = 8+stage_chs[1], o_ch = stage_chs[2])
         else:
             self.p3_inception1 = inception_box(in_ch = stage_chs[1], o_ch = stage_chs[2])
-        # self.p3_inception2 = inception_box(in_ch = stage_chs[2], o_ch = stage_chs[2])
-        self.p3_inception2 = inception_box(in_ch = stage_chs[1], o_ch = stage_chs[2])
+        self.p3_inception2 = inception_box(in_ch = stage_chs[2], o_ch = stage_chs[2])
         self.p3_inception3 = inception_box(in_ch = stage_chs[2], o_ch = stage_chs[2])
         self.p3_inception4 = inception_box(in_ch = stage_chs[2], o_ch = stage_chs[2])
         self.out_layers = torch.nn.Sequential(*self.out_ops)
@@ -225,7 +265,7 @@ class encodedGenerator(torch.nn.Module):
     def forward(self, x, elevation=None, ret_sam=False):
         
         # Conditional variables as list of tensors
-        cvars = [x[...,self.out_ch+i:self.out_ch+i+1,:, :] for i in range(x.shape[1]-self.out_ch)]
+        cvars = [x[...,i:i+1,:, :] for i in range(self.out_ch, x.shape[1])]
         x = x[...,:self.out_ch,:, :]
         
         assert len(cvars) == len(self.cvar_inceps)
@@ -263,25 +303,27 @@ class encodedGenerator(torch.nn.Module):
         out_tmp = self.p2_inception3(out_tmp)
         out_tmp = self.p2_inception4(out_tmp)
 
-        if self.use_cam:
-            out_tmp = self.up2_cam(out_tmp) # apply channel attention 
-            
-        if self.use_sam: # apply spatial attention 
+        for step in range(int((self.scale_factor-2)/2)):
             if ret_sam:
-                atten2, out_tmp = self.up2_sam(out_tmp, ret_att=True) 
+                atten2, out_tmp = self.up_block(out_tmp)
             else:
-                out_tmp = self.up2_sam(out_tmp) 
-
-        """
+                out_tmp = self.up_block(out_tmp)
+        # if self.use_cam:
+        #     out_tmp = self.up2_cam(out_tmp) # apply channel attention 
+        # if self.use_sam: # apply spatial attention 
+        #     if ret_sam:
+        #         atten2, out_tmp = self.up2_sam(out_tmp, ret_att=True) 
+        #     else:
+        #         out_tmp = self.up2_sam(out_tmp) 
         # for layer in self.up2_layers:
         #     out_tmp = layer(out_tmp)  
-        """
         
         if elevation is not None:
-            ele_tmp = elevation.unsqueeze(1).expand(x.size(0), *elevation.size())
+            ele_tmp = elevation.unsqueeze(1).expand(x.size(0), *elevation.size()).type_as(x)
             for layer in self.ele_layers:
                 ele_tmp = layer(ele_tmp)  
-            out_tmp = torch.cat([out_tmp, ele_tmp], 1)
+            # out_tmp = torch.cat([out_tmp, ele_tmp], 1)
+            out_tmp = torch.cat((out_tmp, ele_tmp), dim=1)
             
         out_tmp = self.p3_inception1(out_tmp)
         out_tmp = self.p3_inception2(out_tmp)
@@ -301,8 +343,7 @@ class discModel(torch.nn.Module):
         # input layer
         self.operations = [
             torch.nn.Conv2d(in_channels=in_channels, out_channels=64, kernel_size=4, stride=2, padding=1),
-            torch.nn.LeakyReLU(0.2), ]
-        
+            torch.nn.LeakyReLU(0.2), ]  
         # C128-C256-C512-C512
         out_chs = (128, 256, 512, 512, )
         in_chs  = (64, ) + out_chs[:-1]
@@ -316,7 +357,7 @@ class discModel(torch.nn.Module):
         # output layers
         self.operations += [
             torch.nn.Conv2d(in_channels=out_chs[-1], out_channels=1, kernel_size=4, stride=2, padding=1),
-            # torch.nn.Sigmoid(),
+            # torch.nn.Sigmoid(),  # comment this line for BCEWithLogitsLoss
             ]
         
         self.layers = torch.nn.Sequential(*self.operations)
@@ -331,13 +372,15 @@ class DCGAN(nn.Module):
     self,
     in_channels,
     out_channels,
-    wmse,
-    scale_factor
+    scale_factor,
+    wmse
 ): 
         super().__init__()
         self.use_ele = True
         self.sam = True
         self.cam = True
+        self.in_channels = in_channels
+        self.out_channels = out_channels
         self.wmse = wmse
         self.mdlsz = 256 # channels of the 1st box
         self.generator = encodedGenerator(out_channels,    #main input shape equals output shape, other input vars are conditional

@@ -16,7 +16,7 @@ from src.climate_learn import (IterDataModule, GANLitModule,
 from src.climate_learn.data.processing.era5_constants import (
     DEFAULT_PRESSURE_LEVELS, PRESSURE_LEVEL_VARS)
 
-torch.set_float32_matmul_precision("medium")
+torch.set_float32_matmul_precision("high")
 
 @hydra.main(config_path="/app/configs/train", config_name="era5-era5")
 def main(cfg: DictConfig):
@@ -57,7 +57,7 @@ def construct_experiment_name(config):
     mode = "single"
     if isinstance(out_variables, list):
         if len(out_variables) > 1:
-            mode = "multi"
+            mode = "multi" 
     experiment_name = f"{architecture}_{mode}_{upsampling}_{seed}"
     return experiment_name
 
@@ -71,7 +71,10 @@ def setup_data_module(config):
                 in_vars.append(var + "_" + str(level))
         else:
             in_vars.append(var)
-
+            
+    for var in out_vars:
+        in_vars.remove(var)
+    in_vars = out_vars + in_vars
     assert out_vars == in_vars[:len(out_vars)], "Out variables' names (`out_vars`) must be placed in the beginning of `in_vars`"
     
     dm = IterDataModule(
@@ -79,7 +82,6 @@ def setup_data_module(config):
         inp_root_dir=config.data.era5_low_res_dir,
         out_root_dir=config.data.era5_high_res_dir,
         in_vars=in_vars,
-        # cond_vars=config.data.cond_variables,
         out_vars=out_vars,
         subsample=config.data.subsample,
         batch_size=config.data.batch_size,
@@ -95,18 +97,13 @@ def setup_model(dm, config):
         architecture=config.model.architecture,
         upsampling=config.model.upsampling,
         optim_kwargs={"lr": config.training.learning_rate,
-                    #   "weight_decay": config.training.weight_decay,
-                    #   "betas": (config.training.beta_0, config.training.beta_1)
                       },
-        model_kwargs={"wmse": config.training.wmse, "scale_factor": config.data.scale_factor},
-        sched="linear-warmup-cosine-annealing",
+        model_kwargs={"wmse": config.training.wmse},
         sched_kwargs={
-            "warmup_epochs": config.training.warmup_epochs,
-            "max_epochs": config.training.max_epochs,
-            # "warmup_start_lr": config.training.warmup_start_lr,
-            # "eta_min": config.training.eta_min
+            "warmup": config.training.warmup_epochs,
+            "max_epoch": config.training.max_epochs,
         },
-        train_loss=("l1", "bce"),
+        train_loss=("mae", "bce"),
         val_loss=["rmse", "pearson", "mean_bias", "mse"],
         test_loss=["rmse", "pearson", "mean_bias"],
         train_target_transform=None,
@@ -145,7 +142,6 @@ def setup_trainer(config, default_root_dir):
         devices=config.training.gpus,
         max_epochs=config.training.max_epochs,
         precision=config.training.precision,
-        detect_anomaly=True     # slows down the speed. Use for debug only
     )
     return trainer
 
