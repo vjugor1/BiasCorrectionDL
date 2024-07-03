@@ -130,7 +130,7 @@ def nc2np(path,
             
             # Get variable name from data
             codes=list(ds.keys())
-            code = [x for x in codes if (x not in ["lat_bnds", "lon_bnds", "time_bnds"])][0] 
+            code = [x for x in codes if (x not in ["lat_bnds", "lon_bnds", "time_bnds", "depth_bnds"])][0] 
             
             if frequency=="3H":
                 if code in ["pr", "total_precipitation"]:
@@ -164,6 +164,9 @@ def nc2np(path,
                         
                 elif code in ["tg", "tx", "tn"]: #EOBS temp: C --> K
                     ds[code] = ds[code] + 273.15
+                
+                elif code=="mrsos":  #CMIP moisture in soil: Nan --> 0
+                    ds[code] = ds[code].fillna(0)
                 
                 # remove the last 24 hours if this year has 366 days
                 np_vars[var] = ds[code].to_numpy()[:OBJ_PER_YEAR]
@@ -273,23 +276,28 @@ def regrid(ds_in: xr.Dataset,
     elif "era5" in align_target:
         var=glob.glob(os.path.join(align_target, "*"))[0].split("/")[-1]
         ds_target = open_era(align_target, var)
-
-    if len(ds_target["latitude"])%2!=0:
-        n_cells_lat=(len(ds_target["latitude"])-1)/scale_factor
+    elif "cmip6-cmip6" in align_target:
+        var=glob.glob(os.path.join(align_target, "*"))[0].split("/")[-1]
+        ds_target = open_cmip(align_target, var)
+        
+    lat_axis = [k for k in list(ds_target.dims) if 'lat' in k][0]
+    lon_axis = [k for k in list(ds_target.dims) if 'lon' in k][0]
+    if len(ds_target[lat_axis])%2!=0:
+        n_cells_lat=(len(ds_target[lat_axis])-1)/scale_factor
     else:
-        n_cells_lat=len(ds_target["latitude"])/scale_factor
+        n_cells_lat=len(ds_target[lat_axis])/scale_factor
     if periodic==True:
-        n_cells_lon=len(ds_target["longitude"])/scale_factor
+        n_cells_lon=len(ds_target[lon_axis])/scale_factor
     else:
-        n_cells_lon=(len(ds_target["longitude"])-1)/scale_factor
+        n_cells_lon=(len(ds_target[lon_axis])-1)/scale_factor
 
     lon_new = np.linspace(
-        np.min(ds_target["longitude"].values),
-        np.max(ds_target["longitude"].values),
+        np.min(ds_target[lon_axis].values),
+        np.max(ds_target[lon_axis].values),
         int(n_cells_lon))
     lat_new = np.linspace(
-        np.min(ds_target["latitude"].values),
-        np.max(ds_target["latitude"].values),
+        np.min(ds_target[lat_axis].values),
+        np.max(ds_target[lat_axis].values),
         int(n_cells_lat))
 
     grid_out = {'lon': lon_new, 'lat': lat_new}

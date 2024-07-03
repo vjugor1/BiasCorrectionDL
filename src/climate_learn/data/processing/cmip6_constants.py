@@ -60,7 +60,7 @@ VAR_TO_UNIT = {
 
 DEFAULT_PRESSURE_LEVELS = [50, 250, 500, 600, 700, 850, 925]
 
-CONSTANTS = ["geopotential_at_surface", "land_sea_mask", "slt", "latitude", "longitude"]
+CONSTANTS = ["geopotential_at_surface", "land_sea_mask", "slt", "lat_grid", "longitude"]
 
 NAME_LEVEL_TO_VAR_LEVEL = {}
 
