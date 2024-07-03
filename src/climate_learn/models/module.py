@@ -419,13 +419,9 @@ class GANLitModule(LitModule):
         # generator optimize
         self.toggle_optimizer(optimizerG)
         pred = self(x)
-        # advs_loss = lossD(self.net.discriminator(pred), valid)
-        advs_loss = lossD(torch.nn.Sigmoid()(self.net.discriminator(pred)), valid)
-        # with torch.no_grad():
-        #     # adv loss with BCEWithLogitsLoss
-        #     advs_loss = 0 - (torch.nn.Sigmoid()(self.net.discriminator(pred))).mean().log()
-        #     # adv loss with BCELoss
-        #     # advs_loss = 0 - ((self.net.discriminator(pred))).mean().log()
+        with torch.no_grad():
+            advs_loss = 0 - (torch.nn.Sigmoid()(self.net.discriminator(pred))).mean() # adv loss with BCEWithLogitsLoss
+            # advs_loss = 0 - ((self.net.discriminator(pred))).mean().log() # adv loss with BCELoss
         cont_loss = lossG(pred, y) # content loss
         g_loss = self.net.wmse * cont_loss + advs_loss
         
@@ -438,8 +434,8 @@ class GANLitModule(LitModule):
         # discriminator optimize
         self.toggle_optimizer(optimizerD)
         disc_in = torch.cat((y, pred.detach()), dim=0)
-        disc_out = torch.nn.Sigmoid()(self.net.discriminator(disc_in))
-        # disc_out = self.net.discriminator(disc_in)
+        disc_out = torch.nn.Sigmoid()(self.net.discriminator(disc_in)) # with BCEWithLogitsLoss
+        # disc_out = self.net.discriminator(disc_in) # with BCELoss
         d_loss = lossD(disc_out, disc_label) / 2 # slows down the rate relative to G
         
         self.manual_backward(d_loss)
@@ -454,7 +450,7 @@ class GANLitModule(LitModule):
                 losses,
                 prog_bar=True,
                 on_step=True,
-                on_epoch=True,
+                on_epoch=False,
                 batch_size=x.shape[0],
                 )
 

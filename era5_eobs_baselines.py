@@ -15,12 +15,13 @@ parser = ArgumentParser()
 parser.add_argument(
     "--era5_dir",
     type=str,
-    default="/app/data/processed/era5-eobs/era5_0.25_D"
+    # default="/app/data/processed/era5-eobs/era5_0.25_D"
+    default="/app/data/processed/era5-eobs/e-obs/ensemble_mean/025_grid"
     )
 parser.add_argument(
     "--eobs_dir",
     type=str,
-    default="/app/data/processed/era5-eobs/e-obs/ensemble_mean/010_grid"
+    default="/app/data/processed/era5-eobs/e-obs/ensemble_mean/0125_grid_new"
     )
 
 
@@ -29,10 +30,14 @@ parser.add_argument(
     "--in_vars",
     type=list,
     default=[
-        "2m_temperature",
-        "maximum_temperature",
-        "minimum_temperature",
-        "rainfall"]
+        # "2m_temperature",
+        # "maximum_temperature",
+        # "minimum_temperature",
+        # "rainfall"]
+        "tg",
+        "tx",
+        "tn",
+        "rr"]
     )
 
 parser.add_argument(
