@@ -95,11 +95,15 @@ def nc2np(path,
         constants = xr.open_dataset(
             constants_path
         )
+
         # Avoid odd length of lat/lon
         if any(len(ax)%2==1 for ax in list(constants.coords)):
             regridder_const, _ = regrid(constants, periodic=periodic)
             constants = regridder_const(constants, keep_attrs=True)
-        
+            
+        lat_axis = [k for k in list(constants.dims) if 'lat' in k][0]
+        constants = constants.sortby(constants[lat_axis], ascending=False)
+
         constant_fields = [VAR_TO_NAME[v] for v in CONSTANTS if v in VAR_TO_NAME.keys()]
         constant_values = {}
         for f in constant_fields:
@@ -168,6 +172,8 @@ def nc2np(path,
                 elif code=="mrsos":  #CMIP moisture in soil: Nan --> 0
                     ds[code] = ds[code].fillna(0)
                 
+                lat_axis = [k for k in list(ds.dims) if 'lat' in k][0]
+                ds = ds.sortby(ds[lat_axis], ascending=False)
                 # remove the last 24 hours if this year has 366 days
                 np_vars[var] = ds[code].to_numpy()[:OBJ_PER_YEAR]
 
@@ -280,8 +286,10 @@ def regrid(ds_in: xr.Dataset,
         var=glob.glob(os.path.join(align_target, "*"))[0].split("/")[-1]
         ds_target = open_cmip(align_target, var)
         
+    ds_in = ds_in.rename({"lon": "longitude", "lat": "latitude"})
     lat_axis = [k for k in list(ds_target.dims) if 'lat' in k][0]
     lon_axis = [k for k in list(ds_target.dims) if 'lon' in k][0]
+    
     if len(ds_target[lat_axis])%2!=0:
         n_cells_lat=(len(ds_target[lat_axis])-1)/scale_factor
     else:
@@ -296,18 +304,22 @@ def regrid(ds_in: xr.Dataset,
         np.max(ds_target[lon_axis].values),
         int(n_cells_lon))
     lat_new = np.linspace(
-        np.min(ds_target[lat_axis].values),
         np.max(ds_target[lat_axis].values),
+        np.min(ds_target[lat_axis].values),
         int(n_cells_lat))
-
-    grid_out = {'lon': lon_new, 'lat': lat_new}
+    ds_out = xr.Dataset(
+        coords=dict(
+            lon=(["lon"], lon_new),
+            lat=(["lat"], lat_new))
+    )
+    # grid_out = {'lon': lon_new, 'lat': lat_new}
     
     regridder = xesmf.Regridder(ds_in,
-                                grid_out,
-                                "bilinear",
+                                ds_out,
+                                "conservative",
                                 periodic=periodic
                                 )
-    return regridder, grid_out
+    return regridder, ds_out.coords
 
 
 def convert_nc2npz(
