@@ -97,11 +97,13 @@ def setup_model(dm, config):
         architecture=config.model.architecture,
         upsampling=config.model.upsampling,
         optim_kwargs={"lr": config.training.learning_rate,
+                    #   "weight_decay": 1e-5,
+                    #   "betas": (0.9, 0.99)
                       },
         model_kwargs={"wmse": config.training.wmse},
         sched_kwargs={
-            "warmup": config.training.warmup_epochs,
-            "max_epoch": config.training.max_epochs,
+            "warmup_epochs": config.training.warmup_epochs,
+            "max_epochs": config.training.max_epochs,
         },
         train_loss=("mae", "bce"),
         val_loss=["rmse", "pearson", "mean_bias", "mse"],

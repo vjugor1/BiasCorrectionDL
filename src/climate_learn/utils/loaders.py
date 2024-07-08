@@ -496,11 +496,12 @@ def load_architecture(task, data_module, architecture, upsampling,
             
             if architecture == "gan":
                 optimizerG = load_optimizer(
-                model.generator, "adam",
+                "adam",
                 optim_kwargs
                 )
                 optimizerD = load_optimizer(
-                model.discriminator, "adam",
+                model.discriminator,
+                "adam",
                 optim_kwargs
                 )
                 optimizer = (optimizerG, optimizerD)
@@ -628,8 +629,8 @@ def get_climatology(data_module, split):
         clim = torch.stack(tuple(clim.values()))
     return clim
 
-def cosine_decay(epoch, warmup=100, max_epoch=10000):
-    if epoch <= warmup:
-        return (epoch / warmup)
+def cosine_decay(epoch, warmup_epochs=100, max_epochs=10000):
+    if epoch <= warmup_epochs:
+        return (epoch / warmup_epochs)
     else:
-        return 0.5 * (1 + np.cos((epoch - warmup)/max_epoch * np.pi))
+        return 0.25 * (1 + np.cos((epoch - warmup_epochs)/max_epochs * np.pi))

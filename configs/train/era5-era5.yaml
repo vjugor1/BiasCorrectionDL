@@ -29,7 +29,7 @@ training:
   max_epochs: 200
   patience: 5
   learning_rate: 3e-4
-  warmup_epochs: 100
+  warmup_epochs: 50 #was 100 for gan
   # GPU devices to use (e.g., [0] for single GPU, [0, 1] for multiple GPUs)
   gpus: [3]
   wmse: 5
