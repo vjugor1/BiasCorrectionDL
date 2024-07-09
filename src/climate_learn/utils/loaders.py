@@ -414,20 +414,20 @@ def load_architecture(task, data_module, architecture, upsampling,
             elif architecture == "unet":
                 backbone = Unet(
                     in_channels, out_channels,
-                    ch_mults=[1, 1, 2],
-                    n_blocks=4
+                    ch_mults=[1, 2, 2],
+                    n_blocks=2
                 )
             elif architecture == "vit":
                 backbone = VisionTransformer(
-                    (64, 128),
+                    (out_height, out_width),
                     in_channels,
                     out_channels,
                     history=1,
                     patch_size=2,
                     learn_pos_emb=True,
                     embed_dim=128,
-                    depth=4,
-                    decoder_depth=1,
+                    depth=8,
+                    decoder_depth=2,
                     num_heads=4,
                     mlp_ratio=4,
                 )
@@ -440,10 +440,11 @@ def load_architecture(task, data_module, architecture, upsampling,
                     history=1,
                     timesteps=100,
                     # loss_type='l1',
-                    beta_schedule='cosine')
+                    beta_schedule='cosine',
+                    res_rescale=out_width // in_width)
             elif architecture == "samvit":
                 backbone = VisionTransformerSAM(
-                    (64, 128),
+                    (out_height, out_width),
                     in_channels,
                     out_channels,
                     history=1,
@@ -459,11 +460,16 @@ def load_architecture(task, data_module, architecture, upsampling,
                 backbone = YNet30(
                     in_channels,
                     out_channels,
+                    num_layers=15,
+                    num_features=64,
+                    scale=out_width // in_width,
                 )
             elif architecture == "deepsd":
                 backbone = DeepSD(
                     in_channels,
                     out_channels,
+                    num_features=64,
+                    scale=out_width // in_width,
                 )
             elif architecture == "gan":
                 backbone = DCGAN(
@@ -474,8 +480,7 @@ def load_architecture(task, data_module, architecture, upsampling,
                 )
             else:
                 raise_not_impl()
-                
-            if upsampling.lower() in ["none", None]:
+            if upsampling is None or upsampling.lower() == "none":
                 model = backbone
             elif upsampling.lower() in ["bilinear", "bicubic", "nearest"]:
                 model = nn.Sequential(

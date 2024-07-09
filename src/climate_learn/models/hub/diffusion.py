@@ -97,12 +97,14 @@ class GaussianDiffusion(nn.Module):
         history=1,
         timesteps=1000,
         beta_schedule="cosine",
+        res_rescale=4,
     ):  # deleted arguments denoise_fn, rrdb_net
         super().__init__()
         self.hidden_size = 64
         self.rrdb_num_feat = 32
         self.dim_mults = (1, 2, 2, 4)
         self.rrdb_num_block = 8
+        self.res_rescale = res_rescale
         self.denoise_fn = Unet(  # specifically put in_channels = out_channels, the set difference between variables will be held in RRDB
             in_dim=out_channels,
             history=history,
@@ -110,6 +112,7 @@ class GaussianDiffusion(nn.Module):
             out_dim=out_channels,
             cond_dim=self.rrdb_num_feat,
             dim_mults=self.dim_mults,
+            res_rescale=self.res_rescale,
         )
         self.upscaler = Interpolation((out_height, out_width), mode="bicubic")
         # condition net
@@ -121,6 +124,7 @@ class GaussianDiffusion(nn.Module):
             self.rrdb_num_feat,
             self.rrdb_num_block,  # here is the number of input channels - 3
             self.rrdb_num_feat // 2,
+            self.res_rescale,
         )
         # auxiliary losses
         self.aux_l1_loss = True
@@ -137,7 +141,6 @@ class GaussianDiffusion(nn.Module):
         # residual related
         self.res = True
         self.clip_input = True
-        self.res_rescale = 2.0
 
         if self.beta_schedule == "cosine":
             betas = cosine_beta_schedule(timesteps, s=self.beta_s)

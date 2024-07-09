@@ -13,12 +13,10 @@ from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 
 from src.climate_learn import (IterDataModule, LitModule,
                                load_downscaling_module)
-from src.climate_learn.data.processing.era5_constants import (
-    DEFAULT_PRESSURE_LEVELS, PRESSURE_LEVEL_VARS)
 
-torch.set_float32_matmul_precision("high")
+torch.set_float32_matmul_precision("medium")
 
-@hydra.main(config_path="/app/configs/train", config_name="era5-era5")
+@hydra.main(config_path=os.path.join(os.getcwd(), "configs/train"), config_name="cmip6-era5-d")
 def main(cfg: DictConfig):
     # Construct dynamic experiment name
     experiment_name = construct_experiment_name(cfg)
@@ -61,24 +59,19 @@ def construct_experiment_name(config):
     return experiment_name
 
 def setup_data_module(config):
-    variables = config.data.in_variables
-    in_vars = []
-    for var in variables:
-        if var in PRESSURE_LEVEL_VARS:
-            for level in DEFAULT_PRESSURE_LEVELS:
-                in_vars.append(var + "_" + str(level))
-        else:
-            in_vars.append(var)
+    in_vars = config.data.in_variables
     out_vars = config.data.out_variables
-    if config.model.architecture == "diffusion":
-        for var in out_vars:
-            in_vars.remove(var)
-        in_vars = out_vars + in_vars
-        assert out_vars == in_vars[:len(out_vars)], "Out variables' names (`out_vars`) must be placed in the beginning of `in_vars`"
+    
+    # if config.model.architecture == "diffusion":
+    #     out_vars = config.data.out_variables
+    #     for var in out_vars:
+    #         in_vars.remove(var)
+    #     in_vars = out_vars + in_vars
+    #     assert out_vars == in_vars[:len(out_vars)], "Out variables' names (`out_vars`) must be placed in the beginning of `in_vars`"
         
     dm = IterDataModule(
         task="downscaling",
-        inp_root_dir=config.data.era5_low_res_dir,
+        inp_root_dir=config.data.cmip6_low_res_dir,
         out_root_dir=config.data.era5_high_res_dir,
         in_vars=in_vars,
         out_vars=out_vars,
@@ -132,6 +125,7 @@ def setup_trainer(config, default_root_dir):
         LearningRateMonitor(logging_interval="epoch"),
     ]
     trainer = pl.Trainer(
+        accumulate_grad_batches=4,
         enable_progress_bar=True,
         logger=logger,
         callbacks=callbacks,

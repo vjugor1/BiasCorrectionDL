@@ -363,7 +363,8 @@ class DeepSDLitModule(LitModule):
         if self.elevation is not None:
             # Ensure all elevation tensors are on the same device as x
             elevation_on_device = [e.to(x.device) for e in self.elevation]
-            return self.net(x, elevation_on_device)
+            elevation_expanded = [e.unsqueeze(0).expand(x.size(0), *e.size()) for e in elevation_on_device]
+            return self.net(x, elevation_expanded)
         return self.net(x)
 
 

@@ -9,26 +9,30 @@ from torch.nn import Parameter
 # from .module_util import make_layer, initialize_weights
 # from .commons import Mish, SinusoidalPosEmb, RRDB, Residual, Rezero, LinearAttention
 # from .commons import ResnetBlock, Upsample, Block, Downsample
-SR_SCALE = 2
+
 class RRDBNet(nn.Module):
-    def __init__(self, in_nc, out_nc, nf, nb, gc=32):
+    def __init__(self, in_nc, out_nc, nf, nb, gc=32, res_rescale=2):
         super(RRDBNet, self).__init__()
         RRDB_block_f = functools.partial(RRDB, nf=nf, gc=gc)
-        assert not (SR_SCALE & (SR_SCALE-1)) and SR_SCALE != 0 #check if SR_SCALE is a power of 2
-        self.sr_scale = SR_SCALE
+        assert not (res_rescale & (res_rescale-1)) and res_rescale != 0 #check if SR_SCALE is a power of 2
+        self.sr_scale = res_rescale
         self.use_attn = True
         self.conv_first = nn.Conv2d(in_nc, nf, 3, 1, 1, bias=True)
         self.RRDB_trunk = make_layer(RRDB_block_f, nb)
         self.trunk_conv = nn.Conv2d(nf, nf, 3, 1, 1, bias=True)
+        
         #### upsampling
         # self.upconv_list = [nn.Conv2d(nf, nf, 3, 1, 1, bias=True) for i in range(int(math.log2(self.sr_scale)))]
-        self.upconv1 = nn.Conv2d(nf, nf, 3, 1, 1, bias=True)
+        # self.upconv1 = nn.Conv2d(nf, nf, 3, 1, 1, bias=True)
         # self.upconv2 = nn.Conv2d(nf, nf, 3, 1, 1, bias=True)
         # if self.sr_scale == 8:
         #     self.upconv3 = nn.Conv2d(nf, nf, 3, 1, 1, bias=True)
+        self.upconv_layers = nn.ModuleList()
+        for _ in range(int(math.log2(self.sr_scale))):
+            self.upconv_layers.append(nn.Conv2d(nf, nf, 3, 1, 1, bias=True))
+        
         self.HRconv = nn.Conv2d(nf, nf, 3, 1, 1, bias=True)
         self.conv_last = nn.Conv2d(nf, out_nc, 3, 1, 1, bias=True)
-
         self.lrelu = nn.LeakyReLU(negative_slope=0.2)
 
     def forward(self, x, get_fea=False):
@@ -44,14 +48,19 @@ class RRDBNet(nn.Module):
 
         # for upconv in self.upconv_list:
         #     fea = self.lrelu(upconv(F.interpolate(fea, scale_factor=2, mode='nearest')))
-        fea = self.lrelu(self.upconv1(F.interpolate(fea, scale_factor=2, mode='nearest')))
+        # fea = self.lrelu(self.upconv1(F.interpolate(fea, scale_factor=2, mode='nearest')))
         # fea = self.lrelu(self.upconv2(F.interpolate(fea, scale_factor=2, mode='nearest')))
         # if self.sr_scale == 8:
         #     fea = self.lrelu(self.upconv3(F.interpolate(fea, scale_factor=2, mode='nearest')))
+        
+        # Upsampling
+        for upconv in self.upconv_layers:
+            fea = self.lrelu(upconv(F.interpolate(fea, scale_factor=2, mode='nearest')))
+        
         fea_hr = self.HRconv(fea)
         out = self.conv_last(self.lrelu(fea_hr))
-        out = out.clamp(0, 1)
-        out = out * 2 - 1
+        out = out.clamp(0, 1) * 2 - 1
+        
         if get_fea:
             return out, feas
         else:
@@ -59,14 +68,14 @@ class RRDBNet(nn.Module):
 
 
 class Unet(nn.Module):
-    def __init__(self, in_dim, history=1, dim=64, out_dim=None, dim_mults=(1, 2, 2, 4), cond_dim=32):
+    def __init__(self, in_dim, history=1, dim=64, out_dim=None, dim_mults=(1, 2, 2, 4), cond_dim=32, res_rescale=2):
         super().__init__()
         in_chan = in_dim * history
         dims = [in_chan, *map(lambda m: dim * m, dim_mults)] #Here is the number of input channels = 3, also in RRDB
         in_out = list(zip(dims[:-1], dims[1:]))
         groups = 0
         self.rrdb_num_block = 8
-        self.sr_scale = SR_SCALE
+        self.sr_scale = res_rescale
         self.res = True
         self.up_input = False
         self.use_wn = False
