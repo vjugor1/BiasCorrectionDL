@@ -388,12 +388,10 @@ class GANLitModule(LitModule):
                          val_target_transforms,
                          test_target_transforms)
         
-        self.net = net
-        self.automatic_optimization = False
-        self.train_loss = train_loss
-        self.optimizer = optimizer
-        self.lr_scheduler = lr_scheduler
         self.elevation = elevation
+        # Use this to perform the optimization in the training step
+        self.automatic_optimization = False
+        
         
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         if self.elevation is not None:
@@ -404,43 +402,34 @@ class GANLitModule(LitModule):
         self,
         batch: Tuple[torch.Tensor, torch.Tensor, List[str], List[str]],
     ) -> torch.Tensor:
-        x, y, in_variables, out_variables = batch
+        x, y, _, _ = batch
         optimizerG, optimizerD = self.optimizers()
-        lr_schedulerG, lr_schedulerD = self.lr_schedulers()
         lossG, lossD = self.train_loss
         
-        # put on GPU because we created this tensor inside training_loop
-        dsc_out_size= (x.size(0), 1, 1, 2)
         # Fake:0, valid:1
-        valid = torch.ones(dsc_out_size).type_as(x)
-        fake = torch.zeros(dsc_out_size).type_as(x)
-        disc_label  = torch.cat((valid, fake), dim=0).type_as(x)
-        
-        # generator optimize
+        valid = torch.ones(x.size(0), 1).type_as(x)
+        fake = torch.zeros(x.size(0), 1).type_as(x)
+
+        # train generator
         self.toggle_optimizer(optimizerG)
-        pred = self(x)
-        with torch.no_grad():
-            advs_loss = 0 - (torch.nn.Sigmoid()(self.net.discriminator(pred))).mean() # adv loss with BCEWithLogitsLoss
-            # advs_loss = 0 - ((self.net.discriminator(pred))).mean().log() # adv loss with BCELoss
-        cont_loss = lossG(pred, y) # content loss
-        g_loss = self.net.wmse * cont_loss + advs_loss
+        generated = self(x)
+        advs_loss = lossD(self.net.discriminator(generated), valid)
+        cont_loss = lossG(generated, y) # content loss
+        g_loss = self.net.wmse * cont_loss + advs_loss # but usually take 1e-3 coeff for advs_loss
         
         self.manual_backward(g_loss)
         optimizerG.step()
-        lr_schedulerG.step()
         optimizerG.zero_grad()
         self.untoggle_optimizer(optimizerG)
 
-        # discriminator optimize
+        # train discriminator
         self.toggle_optimizer(optimizerD)
-        disc_in = torch.cat((y, pred.detach()), dim=0)
-        disc_out = torch.nn.Sigmoid()(self.net.discriminator(disc_in)) # with BCEWithLogitsLoss
-        # disc_out = self.net.discriminator(disc_in) # with BCELoss
-        d_loss = lossD(disc_out, disc_label) / 2 # slows down the rate relative to G
+        real_loss = lossD(self.net.discriminator(y), valid)
+        fake_loss = lossD(self.net.discriminator(self(x).detach()), fake)
+        d_loss = (real_loss + fake_loss) / 2 
         
         self.manual_backward(d_loss)
         optimizerD.step()
-        lr_schedulerD.step()
         optimizerD.zero_grad()
         self.untoggle_optimizer(optimizerD)
 
@@ -453,7 +442,23 @@ class GANLitModule(LitModule):
                 on_epoch=False,
                 batch_size=x.shape[0],
                 )
-
+    
+    def on_train_epoch_end(self):
+        sch = self.lr_schedulers()
+        if sch is not None:
+            if not isinstance(sch, list):
+                sch = [sch]
+            for i, scheduler in enumerate(sch):
+                if i == 0:
+                    # Generator
+                    metric = "lossG"
+                else:
+                    # Discriminator
+                    metric = "lossD"
+                if isinstance(scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
+                    scheduler.step(self.trainer.callback_metrics[metric])
+                else:
+                    scheduler.step()
 
     def configure_optimizers(self):
         optimizerG, optimizerD = self.optimizer

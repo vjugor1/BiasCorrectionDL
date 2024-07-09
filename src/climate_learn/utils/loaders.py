@@ -400,11 +400,11 @@ def load_architecture(task, data_module, architecture, upsampling,
             "bicubic-interpolation",
             "nearest-interpolation",
         ):
-            # if set(out_vars) != set(in_vars):
-            #     raise RuntimeError(
-            #         "Interpolation requires the output variables to match the"
-            #         " input variables."
-            #     )
+            if len(out_vars) != len(in_vars):
+                raise RuntimeError(
+                    "Interpolation requires the output variables to match the"
+                    " input variables."
+                )
             interpolation_mode = architecture.split("-")[0]
             model = Interpolation((out_height, out_width), interpolation_mode)
             optimizer = lr_scheduler = None
@@ -466,11 +466,10 @@ def load_architecture(task, data_module, architecture, upsampling,
                     out_channels,
                 )
             elif architecture == "gan":
-                scale_factor = out_height/in_height
                 backbone = DCGAN(
                     in_channels,
                     out_channels,
-                    scale_factor,
+                    scale=out_width // in_width,
                     **model_kwargs
                 )
             else:
@@ -496,13 +495,14 @@ def load_architecture(task, data_module, architecture, upsampling,
             
             if architecture == "gan":
                 optimizerG = load_optimizer(
+                model.generator,
                 "adam",
                 optim_kwargs
                 )
                 optimizerD = load_optimizer(
                 model.discriminator,
                 "adam",
-                optim_kwargs
+                {"lr": 1e-6, "weight_decay": 1e-5, "betas": (0.9, 0.99)}
                 )
                 optimizer = (optimizerG, optimizerD)
                 
