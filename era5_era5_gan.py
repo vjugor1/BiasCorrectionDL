@@ -18,7 +18,7 @@ from src.climate_learn.data.processing.era5_constants import (
 
 torch.set_float32_matmul_precision("high")
 
-@hydra.main(config_path="/app/configs/train", config_name="era5-era5")
+@hydra.main(config_path="/app/configs/train", config_name="era5-era5_gan")
 def main(cfg: DictConfig):
     # Construct dynamic experiment name
     experiment_name = construct_experiment_name(cfg)
@@ -97,8 +97,8 @@ def setup_model(dm, config):
         architecture=config.model.architecture,
         upsampling=config.model.upsampling,
         optim_kwargs={"lr": config.training.learning_rate,
-                    #   "weight_decay": 1e-5,
-                    #   "betas": (0.9, 0.99)
+                      "weight_decay": 1e-5,
+                      "betas": (0.9, 0.99)
                       },
         model_kwargs={"wmse": config.training.wmse},
         sched_kwargs={

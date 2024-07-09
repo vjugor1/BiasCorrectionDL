@@ -13,9 +13,9 @@ data:
   # "2m_temperature", "10m_u_component_of_wind", "10m_v_component_of_wind",
   # "geopotential", "temperature", "relative_humidity", "specific_humidity",
   # "u_component_of_wind", "v_component_of_wind"
-  in_variables: ["2m_temperature", "land_sea_mask", "orography", "lattitude", "10m_u_component_of_wind", "10m_v_component_of_wind"]
+  in_variables: ["2m_temperature", "10m_u_component_of_wind", "10m_v_component_of_wind", "land_sea_mask", "orography", "lattitude"]
   # Output variables to predict. Options are: "2m_temperature", "geopotential_500", "temperature_850"
-  out_variables: ["2m_temperature"]
+  out_variables: ["2m_temperature", "10m_u_component_of_wind", "10m_v_component_of_wind"]
 
 model:
   # Model architecture options: "resnet", "unet", "vit", "samvit", "ynet", "deepsd", "diffusion", "gan"
@@ -36,12 +36,12 @@ training:
   beta_0: 0.9
   beta_1: 0.99
   # GPU devices to use (e.g., [0] for single GPU, [0, 1] for multiple GPUs)
-  gpus: [3]
+  gpus: [0]
   wmse: 5
   checkpoint: null
   # Early stopping configuration
   early_stopping: "val/mse:aggregate"
   min_delta: 1e-4
-  precision: "bf16-true" #-mixed" doesn't work with BCE
+  precision: "bf16-mixed" 
   # Seed for reproducibility
-  seed: 123
+  seed: 777
