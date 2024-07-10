@@ -68,7 +68,7 @@ def visualize_at_index(mm, dm, in_transform, out_transform, variable, src, index
             img = in_transform(xx)[channel].detach().cpu().numpy()
         else:
             img = in_transform(xx[0])[channel].detach().cpu().numpy()
-        if src == "era5":
+        if src == "era5" or src == 'cmip6':
             img = np.flip(img, 0)
         visualize_sample(img, extent, f"Input: {variable_with_units}")
         anim = None
@@ -77,7 +77,7 @@ def visualize_at_index(mm, dm, in_transform, out_transform, variable, src, index
     # Plot the ground truth
     yy = out_transform(y[adj_index])
     yy = yy[channel].detach().cpu().numpy()
-    if src == "era5":
+    if src == "era5" or src == 'cmip6':
         yy = np.flip(yy, 0)
     visualize_sample(yy, extent, f"Ground truth: {variable_with_units}")
     plt.show()
@@ -85,7 +85,7 @@ def visualize_at_index(mm, dm, in_transform, out_transform, variable, src, index
     # Plot the prediction
     ppred = out_transform(pred[adj_index])
     ppred = ppred[channel].detach().cpu().numpy()
-    if src == "era5":
+    if src == "era5" or src == 'cmip6':
         ppred = np.flip(ppred, 0)
     visualize_sample(ppred, extent, f"Prediction: {variable_with_units}")
     plt.show()
@@ -99,7 +99,7 @@ def visualize_at_index(mm, dm, in_transform, out_transform, variable, src, index
     if history > 1:
         return anim
     else:
-        return ppred, yy
+        return ppred, yy, img
 
 
 def visualize_sample(img, extent, title):
