@@ -104,7 +104,7 @@ def setup_model(dm, config):
             "warmup_epochs": config.training.warmup_epochs,
             "max_epochs": config.training.max_epochs,
         },
-        train_loss=tuple(config.training.train_loss),
+        train_loss=tuple(config.training.train_loss) if len(config.training.train_loss) > 1 else str(config.training.train_loss[0]),
         val_loss=["rmse", "pearson", "mean_bias", "mse"],
         test_loss=["rmse", "pearson", "mean_bias"],
         train_target_transform=None,

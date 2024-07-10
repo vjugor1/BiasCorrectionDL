@@ -338,7 +338,7 @@ class discModel(torch.nn.Module):
         return x
 
 
-@register("gan")
+@register("dcgan")
 class DCGAN(nn.Module):
     def __init__(
     self,

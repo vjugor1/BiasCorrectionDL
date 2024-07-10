@@ -21,7 +21,8 @@ from ..models.hub import (
     GaussianDiffusion,
     YNet30,
     DeepSD,
-    DCGAN
+    DCGAN,
+    EDRN
     
 )
 from ..models.lr_scheduler import LinearWarmupCosineAnnealingLR
@@ -273,7 +274,7 @@ def load_model_module(
             test_transforms,
             elevation_list,
         )
-    elif architecture == "gan":
+    elif architecture == "dcgan":
         elevation = prepare_dcgan_elevation(data_module, path_to_elevation)
         model_module = GANLitModule(
             model,
@@ -471,8 +472,14 @@ def load_architecture(task, data_module, architecture, upsampling,
                     num_features=64,
                     scale=out_width // in_width,
                 )
-            elif architecture == "gan":
+            elif architecture == "dcgan":
                 backbone = DCGAN(
+                    in_channels,
+                    out_channels,
+                    scale=out_width // in_width,
+                )
+            elif architecture == "edrn":
+                backbone = EDRN(
                     in_channels,
                     out_channels,
                     scale=out_width // in_width,
@@ -497,7 +504,7 @@ def load_architecture(task, data_module, architecture, upsampling,
             else:
                 raise_not_impl()
             
-            if architecture == "gan":
+            if architecture == "dcgan":
                 optimizerG = load_optimizer(
                 model.generator,
                 "adam",

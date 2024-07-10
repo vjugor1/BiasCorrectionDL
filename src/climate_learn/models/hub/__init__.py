@@ -12,3 +12,4 @@ from .samvit import VisionTransformerSAM
 from .ynet import YNet30
 from .deepsd import DeepSD
 from .gan import DCGAN
+from .edrn import EDRN

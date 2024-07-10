@@ -18,10 +18,10 @@ data:
   out_variables: ["2m_temperature", "geopotential_500", "temperature_850"]
 
 model:
-  # Model architecture options: "resnet", "unet", "vit", "samvit", "ynet", "deepsd", "diffusion", "gan"
-  architecture: "gan"
+  # Model architecture options: "resnet", "unet", "vit", "samvit", "ynet", "deepsd", "diffusion", "dcgan", "edrn"
+  architecture: "edrn"
   # Upsampling method options: "bilinear", "bicubic", "unet_upsampling", "unet_upsampling_bilinear", "none"
-  # NOTE: Some models (e.g. ynet) do not support input upsampling, so they need this parameter set "none"
+  # NOTE: Some models (ynet, deepsd, diffusion, dcgan, edrn) do not support input upsampling, so they need this parameter set "none"
   upsampling: "none"
 
 training:
@@ -32,7 +32,7 @@ training:
   weight_decay: 1e-5
   betas: [0.9, 0.99]
   warmup_epochs: 5
-  train_loss: ["mse", "bce"]
+  train_loss: ["mse"]
   # GPU devices to use (e.g., [0] for single GPU, [0, 1] for multiple GPUs)
   gpus: [0]
   checkpoint: null
