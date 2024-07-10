@@ -416,7 +416,8 @@ class GANLitModule(LitModule):
         generated = self(x)
         advs_loss = lossD(self.net.discriminator(generated), valid)
         cont_loss = lossG(generated, y) # content loss
-        g_loss = self.net.wmse * cont_loss + advs_loss # but usually take 1e-3 coeff for advs_loss
+        g_loss = self.net.wmse * cont_loss + advs_loss # but usually take 1e-4 coeff for advs_loss
+        # g_loss = cont_loss + 1e-4 * advs_loss
         
         self.manual_backward(g_loss)
         optimizerG.step()

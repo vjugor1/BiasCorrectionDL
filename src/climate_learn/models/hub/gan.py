@@ -181,11 +181,11 @@ class encodedGenerator(torch.nn.Module):
                 torch.nn.LeakyReLU(negative_slope=0.01), ]
         
         self.out_ops = [
-            torch.nn.Conv2d(in_channels=stage_chs[2], out_channels=self.norm_chs, \
+            torch.nn.Conv2d(in_channels=stage_chs[2], out_channels=self.norm_chs,  # was out_channels=4
                             kernel_size=3, stride=1, padding=1),
             torch.nn.BatchNorm2d(num_features=self.norm_chs),
             torch.nn.LeakyReLU(negative_slope=0.01), 
-            torch.nn.Conv2d(in_channels=self.norm_chs, out_channels=in_ch, # was out_channels=1,
+            torch.nn.Conv2d(in_channels=self.norm_chs, out_channels=in_ch, # was out_channels=1
                             kernel_size=3, stride=1, padding=1),]
         
         
@@ -345,7 +345,7 @@ class DCGAN(nn.Module):
     in_channels,
     out_channels,
     scale,
-    wmse
+    wmse=5
 ): 
         super().__init__()
         self.use_ele = True

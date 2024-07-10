@@ -70,7 +70,7 @@ def setup_data_module(config):
         else:
             in_vars.append(var)
     out_vars = config.data.out_variables
-    if config.model.architecture == "diffusion":
+    if config.model.architecture in ["diffusion", "gan"]:
         for var in out_vars:
             in_vars.remove(var)
         in_vars = out_vars + in_vars
@@ -95,13 +95,16 @@ def setup_model(dm, config):
         data_module=dm,
         architecture=config.model.architecture,
         upsampling=config.model.upsampling,
-        optim_kwargs={"lr": config.training.learning_rate},
+        optim_kwargs={"lr": config.training.learning_rate,
+                      "weight_decay": config.training.weight_decay,
+                      "betas": tuple(config.training.betas),
+                      },
         sched="linear-warmup-cosine-annealing",
         sched_kwargs={
             "warmup_epochs": config.training.warmup_epochs,
             "max_epochs": config.training.max_epochs,
         },
-        train_loss="mse",
+        train_loss=tuple(config.training.train_loss),
         val_loss=["rmse", "pearson", "mean_bias", "mse"],
         test_loss=["rmse", "pearson", "mean_bias"],
         train_target_transform=None,

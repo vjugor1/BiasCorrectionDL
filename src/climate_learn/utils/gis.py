@@ -211,5 +211,4 @@ def prepare_dcgan_elevation(data_module, path_to_elevation):
 
     new_elevation_tensor = torch.from_numpy(new_elevation_ds["topo"].values).unsqueeze(0)
     
-    # return torch.from_numpy(reprojected_data).unsqueeze(0)
     return new_elevation_tensor

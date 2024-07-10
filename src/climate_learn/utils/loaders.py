@@ -1,5 +1,5 @@
 # Standard library
-from typing import Any, Callable, Dict, Iterable, Optional, Union
+from typing import Any, Callable, Dict, Iterable, Optional, Union, Tuple
 from functools import partial
 import warnings
 import numpy as np
@@ -45,10 +45,10 @@ def load_model_module(
     sched: Optional[Union[str, LRScheduler]] = None,
     sched_kwargs: Optional[Dict[str, Any]] = None,
     upsampling: Optional[str] = None,
-    train_loss: Optional[Union[str, Callable]] = None,
+    train_loss: Optional[Union[str, Callable, Tuple]] = None,
     val_loss: Optional[Iterable[Union[str, Callable]]] = None,
     test_loss: Optional[Iterable[Union[str, Callable]]] = None,
-    train_target_transform: Optional[Union[str, Callable]] = None,
+    train_target_transform: Optional[Union[str, Callable, Tuple]] = None,
     val_target_transform: Optional[Iterable[Union[str, Callable]]] = None,
     test_target_transform: Optional[Iterable[Union[str, Callable]]] = None,
     path_to_elevation: Optional[str] = "/app/data/elevation.nc",
@@ -476,7 +476,6 @@ def load_architecture(task, data_module, architecture, upsampling,
                     in_channels,
                     out_channels,
                     scale=out_width // in_width,
-                    **model_kwargs
                 )
             else:
                 raise_not_impl()
@@ -507,7 +506,7 @@ def load_architecture(task, data_module, architecture, upsampling,
                 optimizerD = load_optimizer(
                 model.discriminator,
                 "adam",
-                {"lr": 1e-6, "weight_decay": 1e-5, "betas": (0.9, 0.99)}
+                {"lr": 1e-7, "weight_decay": 1e-5, "betas": (0.9, 0.99)}
                 )
                 optimizer = (optimizerG, optimizerD)
                 
