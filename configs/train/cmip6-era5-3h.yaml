@@ -14,18 +14,21 @@ data:
   out_variables: ["2m_temperature", "10m_u_component_of_wind", "10m_v_component_of_wind", "total_precipitation", "surface_pressure"]
 
 model:
-  # Model architecture options: "resnet", "unet", "vit", "samvit", "ynet", "deepsd", "diffusion"
+  # Model architecture options: "resnet", "unet", "vit", "samvit", "ynet", "deepsd", "diffusion", "dcgan", "edrn"
   architecture: "deepsd"
   # Upsampling method options: "bilinear", "bicubic", "unet_upsampling", "unet_upsampling_bilinear", "none"
-  # NOTE: Some models (e.g. ynet) do not support input upsampling, so they need this parameter set "none"
+  # NOTE: Some models (ynet, deepsd, diffusion, dcgan, edrn) do not support input upsampling, so they need this parameter set "none"
   upsampling: "none"
 
 training:
   summary_depth: 1
   max_epochs: 200
   patience: 5
-  learning_rate: 1e-5
+  learning_rate: 3e-4
+  weight_decay: 1e-5
+  betas: [0.9, 0.99]
   warmup_epochs: 5
+  train_loss: ["mse"]
   # GPU devices to use (e.g., [0] for single GPU, [0, 1] for multiple GPUs)
   gpus: [0]
   checkpoint: null
