@@ -94,7 +94,7 @@ def setup_model(dm, config):
             "warmup_epochs": config.training.warmup_epochs,
             "max_epochs": config.training.max_epochs,
         },
-        train_loss="mse",
+        train_loss="perceptual",
         val_loss=["rmse", "pearson", "mean_bias", "mse"],
         test_loss=["rmse", "pearson", "mean_bias"],
         train_target_transform=None,
