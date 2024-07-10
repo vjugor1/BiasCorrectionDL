@@ -108,8 +108,8 @@ def setup_model(dm, config):
         val_loss=["rmse", "pearson", "mean_bias", "mse"],
         test_loss=["rmse", "pearson", "mean_bias"],
         train_target_transform=None,
-        val_target_transform=["denormalize", "denormalize", "denormalize", None],
-        test_target_transform=["denormalize", "denormalize", "denormalize"],
+        val_target_transform=["denormalize", "denormalize", "denormalize", None, "denormalize"],
+        test_target_transform=["denormalize", "denormalize", "denormalize", "denormalize"],
     )
     return model
 

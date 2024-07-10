@@ -8,6 +8,10 @@ from .functional import *
 # Third party
 import numpy as np
 import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import torchvision
+import math
 
 
 class Metric:
@@ -355,7 +359,177 @@ class MeanBias(Metric):
         :rtype: torch.FloatTensor|torch.DoubleTensor
         """
         return mean_bias(pred, target, self.aggregate_only)
+@register("perceptual")
+class VGGLoss(Metric):
+    """Computes perceptual loss with VGG16"""
+    def __init__(self, aggregate_only: bool = False, metainfo: Optional[MetricsMetaInfo] = None, device: torch.cuda.device = 1):
+        super().__init__(aggregate_only, metainfo)
+        vgg_features = torchvision.models.vgg16(pretrained=True).features
+        modules = [m for m in vgg_features]
+        
+        # if conv_index == '22':
+        #     self.vgg = nn.Sequential(*modules[:8])
+        # elif conv_index == '54':
+        #     self.vgg = nn.Sequential(*modules[:35])
+        self.vgg = nn.Sequential(*modules[:4]).to(device)
+        # vgg_mean = (0.485, 0.456, 0.406)
+        # vgg_std = (0.229, 0.224, 0.225)
+        #self.sub_mean = common.MeanShift(rgb_range, vgg_mean, vgg_std)
+        self.vgg.requires_grad = False
+    def vgg_over_triplicated_channels(self, x, reducer = sum):
+        n_channels = x.shape[1]
+        return reducer([self.vgg(x[:, c, :, :].unsqueeze(1).repeat(1, 3, 1, 1).float()) for c in range(n_channels)])
+    def gram(self, x):
+        b, c, h, w = x.size()
+        g = torch.bmm(x.view(b, c, h*w) / math.sqrt(h*w), x.view(b, c, h*w).transpose(1,2) / math.sqrt(h*w))
+        return g#.div(h*w)
+    def __call__(
+        self,
+        pred: Union[torch.FloatTensor, torch.DoubleTensor],
+        target: Union[torch.FloatTensor, torch.DoubleTensor],
+    ) -> Union[torch.FloatTensor, torch.DoubleTensor]:
+        vgg_sr = self.vgg_over_triplicated_channels(pred.float())
 
+        with torch.no_grad():
+            vgg_hr = self.vgg_over_triplicated_channels(target.float().detach())#self.vgg(target.float().detach())
+
+        loss = F.mse_loss(vgg_sr, vgg_hr)
+        gram_loss = F.mse_loss(self.gram(vgg_sr), self.gram(vgg_hr))
+        # gram_loss = 0
+        # for f, t in zip(vgg_sr, vgg_hr):
+        #     gram_loss += F.mse_loss(self.gram(f), self.gram(t))
+        
+        return mse(pred, target, self.aggregate_only) + 0.01 * loss # + 0.1 * gram_loss
+
+@register("edge")
+class edge_loss(Metric):
+    def __init__(self, aggregate_only: bool = False, metainfo: Optional[MetricsMetaInfo] = None, device: torch.cuda.device = 1, dtype: torch.dtype = torch.half, n_chan: int = 4):
+        super().__init__(aggregate_only, metainfo)
+        x_filter = np.array([[1, 0, -1], [2, 0, -2], [1, 0, -1]])
+        y_filter = np.array([[1, 2, 1], [0, 0, 0], [-1, -2, -1]])
+        # convx = nn.Conv2d(1, 1, kernel_size=3, stride=1, padding=1, bias=False)
+        # convy = nn.Conv2d(1, 1, kernel_size=3 , stride=1, padding=1, bias=False)
+        self.weights_x = torch.tensor(x_filter, requires_grad=False, device=device, dtype=dtype).unsqueeze(0).unsqueeze(0).repeat(1, n_chan, 1, 1)
+        self.weights_y = torch.tensor(y_filter, requires_grad=False, device=device, dtype=dtype).unsqueeze(0).unsqueeze(0).repeat(1, n_chan, 1, 1)
+    def __call__(self, out, target):
+        
+
+        # convx.weight = nn.Parameter(weights_x)
+        # convy.weight = nn.Parameter(weights_y)
+
+        g1_x = F.conv2d(out, self.weights_x, padding=1, stride=1)
+        g2_x = F.conv2d(target, self.weights_x, padding=1, stride=1)
+        g1_y = F.conv2d(out, self.weights_y, padding=1, stride=1)
+        g2_y = F.conv2d(target, self.weights_y, padding=1, stride=1)
+
+        g_1 = torch.sqrt(torch.pow(g1_x, 2) + torch.pow(g1_y, 2))
+        g_2 = torch.sqrt(torch.pow(g2_x, 2) + torch.pow(g2_y, 2))
+
+        return mse(out, target, self.aggregate_only) + 0.01 * torch.mean((g_1 - g_2).pow(2))
+
+@register("mse_img_freq")
+class OriFreqMSE(Metric):
+    """Computes MSE loss within original and frequency domain. For frequency it is both amplitude and phase"""
+    # def __init__(self, aggregate_only: bool = False, metainfo: Optional[MetricsMetaInfo] = None):
+    #     super().__init__(aggregate_only, metainfo)
+    def get_amp_phase(self, img):
+        fft_im = torch.fft.rfft2(img, norm='ortho')
+        # fft_im: size should be bxcxhxwx2
+        fft_amp = torch.abs(fft_im) # this is the amplitude
+        # eps = 1e-7
+        # nudge = (torch.real(fft_im[:,:,:,:]) <= eps) * eps
+        # fft_pha = torch.atan2( torch.imag(fft_im[:,:,:,:]), torch.real(fft_im[:,:,:,:]) + nudge) # this is the phase
+        return fft_amp#, fft_pha
+    def __call__(
+        self,
+        pred: Union[torch.FloatTensor, torch.DoubleTensor],
+        target: Union[torch.FloatTensor, torch.DoubleTensor],
+    ) -> Union[torch.FloatTensor, torch.DoubleTensor]:
+        # amp_pred, phase_pred = self.get_amp_phase(pred)
+        amp_pred = self.get_amp_phase(pred)
+        # amp_target, phase_target = self.get_amp_phase(target)
+        amp_target = self.get_amp_phase(target)
+        if amp_pred.isnan().any() or amp_target.isnan().any():
+            raise ValueError
+        return F.mse_loss(amp_pred, amp_target) + F.mse_loss(pred, target)# + F.mse_loss(phase_pred, phase_target)
+
+# @register("perceptual")
+# class VGGLoss(Metric):
+#     """Computes perceptual loss with VGG16"""
+#     def __init__(self, aggregate_only: bool = False, metainfo: Optional[MetricsMetaInfo] = None, device: torch.cuda.device = 1):
+#         super().__init__(aggregate_only, metainfo)
+#         self.vgg = VGG19Features().to(device).eval()
+#         self.criterion = nn.MSELoss()
+#         # vgg_features = torchvision.models.vgg19(pretrained=True).features
+#         # modules = [m for m in vgg_features]
+        
+#         # # if conv_index == '22':
+#         # #     self.vgg = nn.Sequential(*modules[:8])
+#         # # elif conv_index == '54':
+#         # #     self.vgg = nn.Sequential(*modules[:35])
+#         # # self.vgg = nn.Sequential(*modules[:35]).to(device)
+#         # self.vgg = nn.Sequential(*(modules[:8] + modules[-8:])).to(device)
+#         # # vgg_mean = (0.485, 0.456, 0.406)
+#         # # vgg_std = (0.229, 0.224, 0.225)
+#         # #self.sub_mean = common.MeanShift(rgb_range, vgg_mean, vgg_std)
+#         # self.vgg.requires_grad = False
+#     def vgg_over_triplicated_channels(self, x, reducer = None):
+#         n_channels = x.shape[1]
+#         if reducer is not None:
+#             return reducer([self.vgg(x[:, c, :, :].unsqueeze(1).repeat(1, 3, 1, 1).float()) for c in range(n_channels)])
+#         else:
+#             return [self.vgg(x[:, c, :, :].unsqueeze(1).repeat(1, 3, 1, 1).float()) for c in range(n_channels)]
+#     def __call__(
+#         self,
+#         pred: Union[torch.FloatTensor, torch.DoubleTensor],
+#         target: Union[torch.FloatTensor, torch.DoubleTensor],
+#     ) -> Union[torch.FloatTensor, torch.DoubleTensor]:
+#         x_vgg = self.vgg_over_triplicated_channels(pred.float())
+
+#         # with torch.no_grad():
+#         y_vgg = self.vgg_over_triplicated_channels(target.float().detach())#self.vgg(target.float().detach())
+
+#         loss = 0
+#         for channel in range(len(x_vgg)):
+#             for i in range(len(x_vgg[channel])):
+#                 loss += self.criterion(x_vgg[channel][i], y_vgg[channel][i])
+        
+#         return 0.1 * loss + mse(pred, target, self.aggregate_only)
+
+# class VGG19Features(nn.Module):
+#     def __init__(self):
+#         super(VGG19Features, self).__init__()
+#         vgg19 = torchvision.models.vgg19(pretrained=False).features
+#         self.slice1 = nn.Sequential()
+#         self.slice2 = nn.Sequential()
+#         self.slice3 = nn.Sequential()
+#         self.slice4 = nn.Sequential()
+#         self.slice5 = nn.Sequential()
+#         for x in range(2):
+#             self.slice1.add_module(str(x), vgg19[x])
+#         for x in range(2, 7):
+#             self.slice2.add_module(str(x), vgg19[x])
+#         for x in range(7, 12):
+#             self.slice3.add_module(str(x), vgg19[x])
+#         for x in range(12, 21):
+#             self.slice4.add_module(str(x), vgg19[x])
+#         for x in range(21, 30):
+#             self.slice5.add_module(str(x), vgg19[x])
+#         for param in self.parameters():
+#             param.requires_grad = False
+
+#     def forward(self, x):
+#         h = self.slice1(x)
+#         h_relu1_2 = h
+#         h = self.slice2(h)
+#         h_relu2_2 = h
+#         h = self.slice3(h)
+#         h_relu3_3 = h
+#         h = self.slice4(h)
+#         h_relu4_3 = h
+#         h = self.slice5(h)
+#         h_relu5_4 = h
+#         return h_relu1_2, h_relu2_2, h_relu3_3, h_relu4_3, h_relu5_4
 
 @register("mae")
 class MAE(Metric):
