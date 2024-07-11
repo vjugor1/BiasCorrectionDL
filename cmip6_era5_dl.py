@@ -29,8 +29,11 @@ def main(cfg: DictConfig):
 
     dm = setup_data_module(cfg)
     model = setup_model(dm, cfg)
-    trainer = setup_trainer(cfg, default_root_dir )
-
+    trainer = setup_trainer(cfg, default_root_dir)
+    try:
+        model.train_loss.vgg = model.train_loss.vgg.to(cfg.training.gpus[0])
+    except AttributeError:
+        pass
     # Train and evaluate model from scratch
     if cfg.training.checkpoint is None:
         trainer.fit(model, datamodule=dm)

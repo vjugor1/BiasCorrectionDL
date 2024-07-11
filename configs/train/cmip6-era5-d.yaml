@@ -4,7 +4,7 @@ data:
   cmip6_low_res_dir: "/app/data/processed/cmip6-era5/cmip6/D"
   era5_high_res_dir: "/app/data/processed/cmip6-era5/era5_0.25/D"
   subsample: 1
-  batch_size: 8
+  batch_size: 4
   buffer_size: 2000
   num_workers: 2
   # Available variables: 
@@ -27,11 +27,11 @@ training:
   learning_rate: 1e-5
   warmup_epochs: 5
   # GPU devices to use (e.g., [0] for single GPU, [0, 1] for multiple GPUs)
-  gpus: [0]
+  gpus: [4]
   checkpoint: null
   # Early stopping configuration
   early_stopping: "val/mse:aggregate"
   min_delta: 1e-4
-  precision: "16-mixed"
+  precision: "32"
   # Seed for reproducibility
   seed: 777
