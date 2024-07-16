@@ -5,7 +5,7 @@ channels:
   - pytorch
   - defaults
 dependencies:
-  # - python==3.10.12
+  - python==3.10.12
   - pytorch-lightning==2.2.1
   - numba
   - dask==2024.3.1
@@ -45,3 +45,5 @@ dependencies:
     - einops==0.7.0
     - rich==13.7.1
     - nvitop==0.2.5.1
+    - pytorch-msssim
+    - hydroeval

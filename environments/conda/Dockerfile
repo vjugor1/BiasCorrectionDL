@@ -1,5 +1,5 @@
 # Use NVIDIA CUDA devel image for GPU support
-FROM nvidia/cuda:12.2.2-base-ubuntu22.04 
+FROM nvidia/cuda:11.6.1-base-ubuntu20.04
 
 # Set non-interactive shell to avoid prompts during build
 ARG DEBIAN_FRONTEND=noninteractive

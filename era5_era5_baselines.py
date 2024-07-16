@@ -16,12 +16,12 @@ parser = ArgumentParser()
 parser.add_argument(
     "--era5_low_res_dir",
     type=str,
-    default="/app/data/ClimateLearn/processed/ERA5/5.625",
+    default="/app/data/ClimateLearn/processed/weatherbench/era5/5.625deg",
 )
 parser.add_argument(
     "--era5_high_res_dir",
     type=str,
-    default="/app/data/ClimateLearn/processed/ERA5/2.8125",
+    default="/app/data/ClimateLearn/processed/weatherbench/era5/2.8125deg",
 )
 args = parser.parse_args()
 

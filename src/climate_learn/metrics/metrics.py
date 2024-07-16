@@ -355,3 +355,86 @@ class MeanBias(Metric):
         :rtype: torch.FloatTensor|torch.DoubleTensor
         """
         return mean_bias(pred, target, self.aggregate_only)
+
+
+@register("PSNR")
+class PSNR(Metric):
+    """Computes the peak signal-to-noise ratio"""
+
+    def __call__(
+        self,
+        pred: Union[torch.FloatTensor, torch.DoubleTensor],
+        target: Union[torch.FloatTensor, torch.DoubleTensor],
+    ) -> Union[torch.FloatTensor, torch.DoubleTensor]:
+        r"""
+        .. highlight:: python
+
+        :param pred: The predicted values of shape [B,C,H,W]. These should be
+            denormalized.
+        :type pred: torch.FloatTensor|torch.DoubleTensor
+        :param target: The ground truth target values of shape [B,C,H,W]. These
+            should be denormalized.
+        :type target: torch.FloatTensor|torch.DoubleTensor
+
+        :return: A singleton tensor if `self.aggregate_only` is `True`. Else, a
+            tensor of shape [C+1], where the last element is the aggregate mean
+            bias, and the preceding elements are the channel-wise mean bias.
+        :rtype: torch.FloatTensor|torch.DoubleTensor
+        """
+        return pnsr(pred, target, self.aggregate_only)
+    
+    
+    
+
+@register("SSIM")
+class SSIM(Metric):
+    """Computes Structural Similarity Index Measure"""
+
+    def __call__(
+        self,
+        pred: Union[torch.FloatTensor, torch.DoubleTensor],
+        target: Union[torch.FloatTensor, torch.DoubleTensor],
+    ) -> Union[torch.FloatTensor, torch.DoubleTensor]:
+        r"""
+        .. highlight:: python
+
+        :param pred: The predicted values of shape [B,C,H,W]. These should be
+            denormalized.
+        :type pred: torch.FloatTensor|torch.DoubleTensor
+        :param target: The ground truth target values of shape [B,C,H,W]. These
+            should be denormalized.
+        :type target: torch.FloatTensor|torch.DoubleTensor
+
+        :return: A singleton tensor if `self.aggregate_only` is `True`. Else, a
+            tensor of shape [C+1], where the last element is the aggregate mean
+            bias, and the preceding elements are the channel-wise mean bias.
+        :rtype: torch.FloatTensor|torch.DoubleTensor
+        """
+        return ssim(pred, target, self.aggregate_only)
+    
+    
+@register("KGE")
+class KGE(Metric):
+    """Computes Kling-Gupta Efficiency """
+
+    def __call__(
+        self,
+        pred: Union[torch.FloatTensor, torch.DoubleTensor],
+        target: Union[torch.FloatTensor, torch.DoubleTensor],
+    ) -> Union[torch.FloatTensor, torch.DoubleTensor]:
+        r"""
+        .. highlight:: python
+
+        :param pred: The predicted values of shape [B,C,H,W]. These should be
+            denormalized.
+        :type pred: torch.FloatTensor|torch.DoubleTensor
+        :param target: The ground truth target values of shape [B,C,H,W]. These
+            should be denormalized.
+        :type target: torch.FloatTensor|torch.DoubleTensor
+
+        :return: A singleton tensor if `self.aggregate_only` is `True`. Else, a
+            tensor of shape [C+1], where the last element is the aggregate mean
+            bias, and the preceding elements are the channel-wise mean bias.
+        :rtype: torch.FloatTensor|torch.DoubleTensor
+        """
+        return kge(pred, target, self.aggregate_only)

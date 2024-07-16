@@ -7,6 +7,8 @@ from .utils import Pred, handles_probabilistic
 # Third party
 import torch
 import torch.nn.functional as F
+from pytorch_msssim import ssim as ssim_func
+import hydroeval as he
 
 
 @handles_probabilistic
@@ -243,6 +245,69 @@ def nrmseg(
     target = target.mean(dim=(-2, -1))  # N, C
     error = (pred - target) ** 2
     per_channel_losses = error.mean(0).sqrt() / y_normalization  # C
+    loss = per_channel_losses.mean()
+    if aggregate_only:
+        return loss
+    return torch.cat((per_channel_losses, loss.unsqueeze(0)))
+
+
+def pnsr(
+    pred: Union[torch.FloatTensor, torch.DoubleTensor],
+    target: Union[torch.FloatTensor, torch.DoubleTensor],
+    aggregate_only: bool = False,
+    lat_weights: Optional[Union[torch.FloatTensor, torch.DoubleTensor]] = None,
+) -> Union[torch.FloatTensor, torch.DoubleTensor]:
+
+    mse_value = mse(pred, target, False, lat_weights)[:pred.shape[1]] # C
+    # per_channel_max_value = 1.0
+    per_channel_losses = []
+    for i in range(pred.shape[1]):
+        pnsr_value = 20 * torch.log10(1.0 / torch.sqrt(torch.Tensor([mse_value[i]])))
+        per_channel_losses.append(pnsr_value)
+    per_channel_losses = torch.tensor(per_channel_losses).squeeze()
+    loss = per_channel_losses.mean()
+    if aggregate_only:
+        return loss
+    return torch.cat((per_channel_losses, loss.unsqueeze(0)))
+
+
+def ssim(
+    pred: Union[torch.FloatTensor, torch.DoubleTensor],
+    target: Union[torch.FloatTensor, torch.DoubleTensor],
+    aggregate_only: bool = False,
+    lat_weights: Optional[Union[torch.FloatTensor, torch.DoubleTensor]] = None,
+) -> Union[torch.FloatTensor, torch.DoubleTensor]:
+    if lat_weights is not None:
+        pred = pred * lat_weights
+        target = target * lat_weights
+        
+    per_channel_losses = ssim_func(torch.swapaxes(pred, 0, 1),
+                                   torch.swapaxes(target, 0, 1),
+                                   data_range=1.0,
+                                   size_average=False)
+    loss = per_channel_losses.mean()
+    if aggregate_only:
+        return loss
+    return torch.cat((per_channel_losses, loss.unsqueeze(0)))
+
+
+def kge(
+    pred: Union[torch.FloatTensor, torch.DoubleTensor],
+    target: Union[torch.FloatTensor, torch.DoubleTensor],
+    aggregate_only: bool = False,
+    lat_weights: Optional[Union[torch.FloatTensor, torch.DoubleTensor]] = None,
+) -> Union[torch.FloatTensor, torch.DoubleTensor]:
+    if lat_weights is not None:
+        pred = pred * lat_weights
+        target = target * lat_weights
+    
+    per_channel_losses = []
+    for i in range(pred.shape[1]):
+        kge, r, alpha, beta = he.evaluator(he.kge,
+                                           torch.ravel(pred[:, i]),
+                                           torch.ravel(target[:, i]))
+        per_channel_losses.append(kge)
+    per_channel_losses = torch.tensor(per_channel_losses).squeeze()
     loss = per_channel_losses.mean()
     if aggregate_only:
         return loss
