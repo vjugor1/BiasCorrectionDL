@@ -18,8 +18,8 @@ from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 
 
 parser = ArgumentParser()
-parser.add_argument("era5_low_res_dir")
-parser.add_argument("era5_high_res_dir")
+parser.add_argument("low_res_dir")
+parser.add_argument("high_res_dir")
 parser.add_argument("preset", choices=["resnet", "unet", "vit"])
 parser.add_argument(
     "variable", choices=["t2m", "z500", "t850"], help="The variable to predict."
@@ -61,8 +61,8 @@ for var in variables:
         in_vars.append(var)
 dm = cl.data.IterDataModule(
     "downscaling",
-    args.era5_low_res_dir,
-    args.era5_high_res_dir,
+    args.low_res_dir,
+    args.high_res_dir,
     in_vars,
     out_vars=[out_var_dict[args.variable]],
     subsample=1,

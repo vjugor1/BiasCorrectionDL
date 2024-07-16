@@ -361,20 +361,39 @@ class MeanBias(Metric):
         return mean_bias(pred, target, self.aggregate_only)
 @register("perceptual")
 class VGGLoss(Metric):
-    """Computes perceptual loss with VGG16"""
-    def __init__(self, aggregate_only: bool = False, metainfo: Optional[MetricsMetaInfo] = None, device: torch.cuda.device = 1):
+    """
+    Computes perceptual loss with VGG16. MSE is chosen for feature and gram components - as in literature
+    https://github.com/sunshineatnoon/Paper-Collection/blob/master/Perceptual%20Losses%20Neural%20Style.md
+    """
+    def __init__(self, aggregate_only: bool = False, metainfo: Optional[MetricsMetaInfo] = None, device: torch.cuda.device = 1, feature_coeff: torch.half = 1, gram_coeff: torch.half = 1, relu_n: int = 2, content: str = 'mse'):
         super().__init__(aggregate_only, metainfo)
+        if content == 'mse':
+            self.content = F.mse_loss
+        elif content == 'mae':
+            self.content = F.l1_loss
+        else:
+            raise NotImplementedError("mse or mae supported")
+        self.feature_coeff = feature_coeff
+        self.gram_coeff = gram_coeff
+        self.relu_n = relu_n
         vgg_features = torchvision.models.vgg16(pretrained=True).features
         modules = [m for m in vgg_features]
+        relu_count = 0
+        last_layer_index = -1
+
+        # Iterate through the modules to count ReLU layers and find the last layer
+        for i, module in enumerate(modules):
+            if isinstance(module, torch.nn.ReLU):
+                relu_count += 1
+                if relu_count == self.relu_n:
+                    last_layer_index = i
+                    break
         
-        # if conv_index == '22':
-        #     self.vgg = nn.Sequential(*modules[:8])
-        # elif conv_index == '54':
-        #     self.vgg = nn.Sequential(*modules[:35])
-        self.vgg = nn.Sequential(*modules[:4]).to(device)
-        # vgg_mean = (0.485, 0.456, 0.406)
-        # vgg_std = (0.229, 0.224, 0.225)
-        #self.sub_mean = common.MeanShift(rgb_range, vgg_mean, vgg_std)
+        # If the specified ReLU layer does not exist, raise an error
+        if last_layer_index == -1:
+            raise ValueError(f"ReLU layer {relu_n} does not exist in VGG16.")
+        self.vgg = nn.Sequential(*modules[:last_layer_index+1]).to(device)
+
         self.vgg.requires_grad = False
     def vgg_over_triplicated_channels(self, x, reducer = sum):
         n_channels = x.shape[1]
@@ -395,11 +414,8 @@ class VGGLoss(Metric):
 
         loss = F.mse_loss(vgg_sr, vgg_hr)
         gram_loss = F.mse_loss(self.gram(vgg_sr), self.gram(vgg_hr))
-        # gram_loss = 0
-        # for f, t in zip(vgg_sr, vgg_hr):
-        #     gram_loss += F.mse_loss(self.gram(f), self.gram(t))
         
-        return mse(pred, target, self.aggregate_only) + 0.01 * loss # + 0.1 * gram_loss
+        return self.content(pred, target) + self.feature_coeff * loss  + self.gram_coeff * gram_loss
 
 @register("edge")
 class edge_loss(Metric):
@@ -452,84 +468,6 @@ class OriFreqMSE(Metric):
         if amp_pred.isnan().any() or amp_target.isnan().any():
             raise ValueError
         return F.mse_loss(amp_pred, amp_target) + F.mse_loss(pred, target)# + F.mse_loss(phase_pred, phase_target)
-
-# @register("perceptual")
-# class VGGLoss(Metric):
-#     """Computes perceptual loss with VGG16"""
-#     def __init__(self, aggregate_only: bool = False, metainfo: Optional[MetricsMetaInfo] = None, device: torch.cuda.device = 1):
-#         super().__init__(aggregate_only, metainfo)
-#         self.vgg = VGG19Features().to(device).eval()
-#         self.criterion = nn.MSELoss()
-#         # vgg_features = torchvision.models.vgg19(pretrained=True).features
-#         # modules = [m for m in vgg_features]
-        
-#         # # if conv_index == '22':
-#         # #     self.vgg = nn.Sequential(*modules[:8])
-#         # # elif conv_index == '54':
-#         # #     self.vgg = nn.Sequential(*modules[:35])
-#         # # self.vgg = nn.Sequential(*modules[:35]).to(device)
-#         # self.vgg = nn.Sequential(*(modules[:8] + modules[-8:])).to(device)
-#         # # vgg_mean = (0.485, 0.456, 0.406)
-#         # # vgg_std = (0.229, 0.224, 0.225)
-#         # #self.sub_mean = common.MeanShift(rgb_range, vgg_mean, vgg_std)
-#         # self.vgg.requires_grad = False
-#     def vgg_over_triplicated_channels(self, x, reducer = None):
-#         n_channels = x.shape[1]
-#         if reducer is not None:
-#             return reducer([self.vgg(x[:, c, :, :].unsqueeze(1).repeat(1, 3, 1, 1).float()) for c in range(n_channels)])
-#         else:
-#             return [self.vgg(x[:, c, :, :].unsqueeze(1).repeat(1, 3, 1, 1).float()) for c in range(n_channels)]
-#     def __call__(
-#         self,
-#         pred: Union[torch.FloatTensor, torch.DoubleTensor],
-#         target: Union[torch.FloatTensor, torch.DoubleTensor],
-#     ) -> Union[torch.FloatTensor, torch.DoubleTensor]:
-#         x_vgg = self.vgg_over_triplicated_channels(pred.float())
-
-#         # with torch.no_grad():
-#         y_vgg = self.vgg_over_triplicated_channels(target.float().detach())#self.vgg(target.float().detach())
-
-#         loss = 0
-#         for channel in range(len(x_vgg)):
-#             for i in range(len(x_vgg[channel])):
-#                 loss += self.criterion(x_vgg[channel][i], y_vgg[channel][i])
-        
-#         return 0.1 * loss + mse(pred, target, self.aggregate_only)
-
-# class VGG19Features(nn.Module):
-#     def __init__(self):
-#         super(VGG19Features, self).__init__()
-#         vgg19 = torchvision.models.vgg19(pretrained=False).features
-#         self.slice1 = nn.Sequential()
-#         self.slice2 = nn.Sequential()
-#         self.slice3 = nn.Sequential()
-#         self.slice4 = nn.Sequential()
-#         self.slice5 = nn.Sequential()
-#         for x in range(2):
-#             self.slice1.add_module(str(x), vgg19[x])
-#         for x in range(2, 7):
-#             self.slice2.add_module(str(x), vgg19[x])
-#         for x in range(7, 12):
-#             self.slice3.add_module(str(x), vgg19[x])
-#         for x in range(12, 21):
-#             self.slice4.add_module(str(x), vgg19[x])
-#         for x in range(21, 30):
-#             self.slice5.add_module(str(x), vgg19[x])
-#         for param in self.parameters():
-#             param.requires_grad = False
-
-#     def forward(self, x):
-#         h = self.slice1(x)
-#         h_relu1_2 = h
-#         h = self.slice2(h)
-#         h_relu2_2 = h
-#         h = self.slice3(h)
-#         h_relu3_3 = h
-#         h = self.slice4(h)
-#         h_relu4_3 = h
-#         h = self.slice5(h)
-#         h_relu5_4 = h
-#         return h_relu1_2, h_relu2_2, h_relu3_3, h_relu4_3, h_relu5_4
 
 @register("mae")
 class MAE(Metric):

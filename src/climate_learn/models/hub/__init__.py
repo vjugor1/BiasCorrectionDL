@@ -13,3 +13,4 @@ from .ynet import YNet30
 from .deepsd import DeepSD
 from .gan import DCGAN
 from .edrn import EDRN
+from .esr_gan import ESRGAN

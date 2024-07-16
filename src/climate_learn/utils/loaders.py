@@ -7,7 +7,7 @@ import numpy as np
 # Local application
 from .gis import prepare_ynet_climatology, prepare_deepsd_elevation, prepare_dcgan_elevation
 from ..data import IterDataModule
-from ..models import LitModule, DiffusionLitModule, DeepSDLitModule, YnetLitModule, GANLitModule, MODEL_REGISTRY
+from ..models import LitModule, DiffusionLitModule, DeepSDLitModule, YnetLitModule, GANLitModule, ESRGANLitModule, MODEL_REGISTRY
 from ..models.hub import (
     Climatology,
     Interpolation,
@@ -22,7 +22,8 @@ from ..models.hub import (
     YNet30,
     DeepSD,
     DCGAN,
-    EDRN
+    EDRN,
+    ESRGAN
     
 )
 from ..models.lr_scheduler import LinearWarmupCosineAnnealingLR
@@ -47,6 +48,7 @@ def load_model_module(
     sched_kwargs: Optional[Dict[str, Any]] = None,
     upsampling: Optional[str] = None,
     train_loss: Optional[Union[str, Callable, Tuple]] = None,
+    train_loss_kwargs: Optional[Dict[str, Any]] = None,
     val_loss: Optional[Iterable[Union[str, Callable]]] = None,
     test_loss: Optional[Iterable[Union[str, Callable]]] = None,
     train_target_transform: Optional[Union[str, Callable, Tuple]] = None,
@@ -123,7 +125,10 @@ def load_model_module(
         print(f"Loading training loss: {train_loss}")
         clim = get_climatology(data_module, "train")
         metainfo = MetricsMetaInfo(in_vars, out_vars, lat, lon, clim)
-        train_loss = load_loss(train_loss, True, metainfo)
+        if train_loss == 'perceptual':
+            train_loss = load_loss(train_loss, True, metainfo, **train_loss_kwargs)
+        else:
+            train_loss = load_loss(train_loss, True, metainfo)
     elif isinstance(train_loss, tuple):
         print(f"Loading training loss: {train_loss}")
         clim = get_climatology(data_module, "train")
@@ -287,6 +292,19 @@ def load_model_module(
             val_transforms,
             test_transforms,
             elevation
+
+        )
+    elif architecture == "esrgan":
+        model_module = ESRGANLitModule(
+            model,
+            optimizer,
+            lr_scheduler,
+            train_loss,
+            val_losses,
+            test_losses,
+            train_transform,
+            val_transforms,
+            test_transforms,
 
         )
     else:
@@ -484,6 +502,12 @@ def load_architecture(task, data_module, architecture, upsampling,
                     out_channels,
                     scale=out_width // in_width,
                 )
+            elif architecture == "esrgan":
+                backbone = ESRGAN(
+                    in_channels,
+                    out_channels,
+                    scale=out_width // in_width,
+                )
             else:
                 raise_not_impl()
             if upsampling is None or upsampling.lower() == "none":
@@ -504,7 +528,7 @@ def load_architecture(task, data_module, architecture, upsampling,
             else:
                 raise_not_impl()
             
-            if architecture == "dcgan":
+            if architecture == "dcgan" or architecture == "esrgan":
                 optimizerG = load_optimizer(
                 model.generator,
                 "adam",
@@ -513,17 +537,18 @@ def load_architecture(task, data_module, architecture, upsampling,
                 optimizerD = load_optimizer(
                 model.discriminator,
                 "adam",
-                {"lr": 1e-7, "weight_decay": 1e-5, "betas": (0.9, 0.99)}
+                # optim_kwargs
+                {"lr": 2e-5, "weight_decay": 1e-5, "betas": (0.9, 0.99)}
                 )
                 optimizer = (optimizerG, optimizerD)
                 
                 lr_schedulerG = load_lr_scheduler(
-                                                "lambdaLR",
+                                                "linear-warmup-cosine-annealing",
                                                 optimizerG,
                                                 sched_kwargs
                                                 )
                 lr_schedulerD = load_lr_scheduler(
-                                                "lambdaLR",
+                                                "linear-warmup-cosine-annealing",
                                                 optimizerG,
                                                 sched_kwargs
                                                 )
@@ -595,7 +620,7 @@ def load_lr_scheduler(
     return lr_scheduler
 
 
-def load_loss(loss_name, aggregate_only, metainfo):
+def load_loss(loss_name, aggregate_only, metainfo, **kwargs):
     loss_cls = METRICS_REGISTRY.get(loss_name, None)
     if loss_cls is None:
         raise NotImplementedError(
@@ -603,7 +628,7 @@ def load_loss(loss_name, aggregate_only, metainfo):
             " please raise an issue at"
             " https://gtihub.com/aditya-grover/climate-learn/issues"
         )
-    loss = loss_cls(aggregate_only=aggregate_only, metainfo=metainfo)
+    loss = loss_cls(aggregate_only=aggregate_only, metainfo=metainfo, **kwargs)
     return loss
 
 

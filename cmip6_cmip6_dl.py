@@ -80,8 +80,8 @@ def setup_data_module(config):
     
     dm = IterDataModule(
         task="downscaling",
-        inp_root_dir=config.data.cmip6_low_res_dir,
-        out_root_dir=config.data.cmip6_high_res_dir,
+        inp_root_dir=config.data.low_res_dir,
+        out_root_dir=config.data.high_res_dir,
         in_vars=in_vars,
         out_vars=out_vars,
         subsample=config.data.subsample,
@@ -107,6 +107,7 @@ def setup_model(dm, config):
             "max_epochs": config.training.max_epochs,
         },
         train_loss=tuple(config.training.train_loss) if len(config.training.train_loss) > 1 else str(config.training.train_loss[0]),
+        train_loss_kwargs=config.training.perceptual_hp,
         val_loss=["rmse", "pearson", "mean_bias", "mse"],
         test_loss=["rmse", "pearson", "mean_bias"],
         train_target_transform=None,

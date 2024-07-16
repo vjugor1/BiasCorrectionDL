@@ -469,3 +469,152 @@ class GANLitModule(LitModule):
         else:
             schedulerG, schedulerD = self.lr_scheduler
         return [optimizerG, optimizerD], [schedulerG, schedulerD]
+
+class ESRGANLitModule(LitModule):
+    def __init__(
+        self,
+        net: torch.nn.Module,
+        optimizer: tuple[torch.optim.Optimizer, torch.optim.Optimizer],
+        lr_scheduler: tuple[LRScheduler, LRScheduler],
+        train_loss: Callable,
+        val_loss: List[Callable] = None,
+        test_loss: List[Callable] = None,
+        train_target_transform: Optional[Callable] = None,
+        val_target_transforms: Optional[List[Union[Callable, None]]] = None,
+        test_target_transforms: Optional[List[Union[Callable, None]]] = None,
+
+    ):
+        super().__init__(net, optimizer, lr_scheduler,
+                         train_loss, val_loss, test_loss,
+                         train_target_transform,
+                         val_target_transforms,
+                         test_target_transforms)
+        self.optimizer = optimizer
+        self.lr_scheduler = lr_scheduler
+        self.automatic_optimization = False
+        
+        
+    # Define optimizer and scheduler configurations
+    def configure_optimizers(self) -> Tuple:
+        opt_gen = self.optimizer[0]#torch.optim.Adam(self.net.generator.parameters(), lr=self.lr)
+        opt_disc = self.optimizer[1]#torch.optim.Adam(self.net.discriminator.parameters(), lr=self.lr)
+        sched_gen = self.lr_scheduler[0]#torch.optim.lr_scheduler.StepLR(opt_gen, step_size=self.scheduler_step, gamma=0.5)
+        sched_disc = self.lr_scheduler[1]#torch.optim.lr_scheduler.StepLR(opt_disc, step_size=self.scheduler_step, gamma=0.5)
+        return [opt_gen, opt_disc], [sched_gen, sched_disc]
+    # Training loop for both generator and discriminator
+    def training_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> None:
+        lr_image, hr_image, _, _ = batch
+        optimizerG, optimizerD = self.optimizers()
+        
+        # train generator
+        self.toggle_optimizer(optimizerG)
+        g_loss = self._generator_loss(lr_image, hr_image)
+        
+        self.manual_backward(g_loss)
+        optimizerG.step()
+        optimizerG.zero_grad()
+        self.untoggle_optimizer(optimizerG)
+
+        # train discriminator
+        self.toggle_optimizer(optimizerD)
+        d_loss = self._discriminator_loss(lr_image, hr_image)
+        
+        self.manual_backward(d_loss)
+        optimizerD.step()
+        optimizerD.zero_grad()
+        self.untoggle_optimizer(optimizerD)
+
+        losses= {
+                 'lossG': g_loss, 'lossD': d_loss}
+        self.log_dict(
+                losses,
+                prog_bar=True,
+                on_step=True,
+                on_epoch=False,
+                batch_size=lr_image.shape[0],
+                )
+        # loss = None
+        # if optimizer_idx == 0:  # Generator optimizer
+        #     loss = self._generator_loss(lr_image, hr_image)
+        # elif optimizer_idx == 1:  # Discriminator optimizer
+        #     loss = self._discriminator_loss(lr_image, hr_image)
+        # return loss       
+    # Validation Step: Performed during model validation.
+    # def validation_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> None:
+    #     lr_image, hr_image = batch
+    #     sr_image = self(lr_image)
+
+    #     loss_gen = self._generator_loss(lr_image, hr_image)
+    #     loss_disc = self._discriminator_loss(lr_image, hr_image)
+
+    #     self.log("loss_gen", loss_gen, on_epoch=True, sync_dist=True)
+    #     self.log("loss_disc", loss_disc, on_epoch=True, sync_dist=True)
+
+    #     mse_loss = F.mse_loss(sr_image, hr_image)
+    #     self.log("psnr", self.net.psnr(mse_loss), on_epoch=True, sync_dist=True)
+    #     self.log("ssim", self.net.ssim(sr_image, hr_image), on_epoch=True, sync_dist=True)
+
+    def on_train_epoch_end(self):
+        sch = self.lr_schedulers()
+        if sch is not None:
+            if not isinstance(sch, list):
+                sch = [sch]
+            for i, scheduler in enumerate(sch):
+                if i == 0:
+                    # Generator
+                    metric = "lossG"
+                else:
+                    # Discriminator
+                    metric = "lossD"
+                if isinstance(scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
+                    scheduler.step(self.trainer.callback_metrics[metric])
+                else:
+                    scheduler.step()
+
+    # Prediction Step: Used for generating super-resolved images for a given batch.
+    def predict_step(self, batch, batch_idx):
+        lr_image, hr_image, names = batch
+        sr_image = self(lr_image)
+        lr_image = F.interpolate(lr_image, size=(150, 150), mode='bicubic')
+        return lr_image, sr_image, hr_image, names
+    
+    # Generate fake prediction: Produces both the super-resolved image and its discriminator prediction.
+    def _fake_pred(self, lr_image: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        fake = self(lr_image)
+        fake_pred = self.net.discriminator(fake)
+        return fake, fake_pred
+
+    # Discriminator Loss: Calculate the loss for training the discriminator.
+    def _discriminator_loss(self, lr_image: torch.Tensor, hr_image: torch.Tensor) -> torch.Tensor:
+        real_pred = self.net.discriminator(hr_image)
+        _, fake_pred = self._fake_pred(lr_image)
+
+        d1_loss = self._adv_loss(real_pred - fake_pred, ones=True)
+        d2_loss = self._adv_loss(fake_pred - real_pred, ones=False)
+
+        return (d1_loss + d2_loss) / 2.0
+
+    # Generator Loss: Calculate the loss for training the generator.
+    def _generator_loss(self, lr_image: torch.Tensor, hr_image: torch.Tensor) -> torch.Tensor:
+        fake, fake_pred = self._fake_pred(lr_image)
+
+        perceptual_loss = self._perceptual_loss(hr_image, fake)
+        adv_loss = self._adv_loss(fake_pred, ones=True)
+        # content_loss = F.mse_loss(fake, hr_image)
+        content_loss = self.train_loss(fake, hr_image)
+        self.log("Perceptual Loss", perceptual_loss, on_epoch=True, sync_dist=True)
+        self.log("Adv Loss", adv_loss, on_epoch=True, sync_dist=True)
+        
+        return 1 * perceptual_loss + 0.005 * adv_loss + content_loss * 0.01
+
+    # Adversarial Loss: Helper function to calculate adversarial loss.
+    @staticmethod
+    def _adv_loss(pred: torch.Tensor, ones: bool) -> torch.Tensor:
+        target = torch.ones_like(pred) if ones else torch.zeros_like(pred)
+        return F.binary_cross_entropy_with_logits(pred, target)
+    
+    # Perceptual Loss: Calculate perceptual loss using features from the VGG network.
+    def _perceptual_loss(self, hr_image: torch.Tensor, fake: torch.Tensor) -> torch.Tensor:
+        real_features = self.net.feature_extractor(hr_image)
+        fake_features = self.net.feature_extractor(fake)
+        return self.train_loss(fake_features, real_features) 

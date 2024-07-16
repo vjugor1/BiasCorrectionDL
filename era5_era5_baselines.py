@@ -14,12 +14,12 @@ torch.set_float32_matmul_precision("medium")
 
 parser = ArgumentParser()
 parser.add_argument(
-    "--era5_low_res_dir",
+    "--low_res_dir",
     type=str,
     default="/app/data/ClimateLearn/processed/ERA5/5.625",
 )
 parser.add_argument(
-    "--era5_high_res_dir",
+    "--high_res_dir",
     type=str,
     default="/app/data/ClimateLearn/processed/ERA5/2.8125",
 )
@@ -34,8 +34,8 @@ in_vars = out_vars = [
 
 dm = IterDataModule(
     task="downscaling",
-    inp_root_dir=args.era5_low_res_dir,
-    out_root_dir=args.era5_high_res_dir,
+    inp_root_dir=args.low_res_dir,
+    out_root_dir=args.high_res_dir,
     in_vars=in_vars,
     out_vars=out_vars,
     subsample=1,
