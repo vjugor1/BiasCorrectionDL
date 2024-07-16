@@ -10,7 +10,7 @@ from pytorch_lightning.callbacks import RichModelSummary, RichProgressBar
 from src.climate_learn import load_downscaling_module
 from src.climate_learn.data import IterDataModule
 
-torch.set_float32_matmul_precision("high")
+torch.set_float32_matmul_precision("medium")
 
 parser = ArgumentParser()
 parser.add_argument(

@@ -16,7 +16,7 @@ from src.climate_learn import (IterDataModule, LitModule,
 from src.climate_learn.data.processing.era5_constants import (
     DEFAULT_PRESSURE_LEVELS, PRESSURE_LEVEL_VARS)
 
-torch.set_float32_matmul_precision("high")
+torch.set_float32_matmul_precision("medium")
 
 @hydra.main(config_path="/app/configs/train", config_name="cmip6-cmip6")
 def main(cfg: DictConfig):
@@ -78,13 +78,6 @@ def setup_data_module(config):
     in_vars = config.data.in_variables
     out_vars = config.data.out_variables
     
-    # if config.model.architecture == "diffusion":
-    #     out_vars = config.data.out_variables
-    #     for var in out_vars:
-    #         in_vars.remove(var)
-    #     in_vars = out_vars + in_vars
-    #     assert out_vars == in_vars[:len(out_vars)], "Out variables' names (`out_vars`) must be placed in the beginning of `in_vars`"
-        
     dm = IterDataModule(
         task="downscaling",
         inp_root_dir=config.data.cmip6_low_res_dir,
@@ -104,13 +97,16 @@ def setup_model(dm, config):
         data_module=dm,
         architecture=config.model.architecture,
         upsampling=config.model.upsampling,
-        optim_kwargs={"lr": config.training.learning_rate},
+        optim_kwargs={"lr": config.training.learning_rate,
+                      "weight_decay": config.training.weight_decay,
+                      "betas": tuple(config.training.betas),
+                      },
         sched="linear-warmup-cosine-annealing",
         sched_kwargs={
             "warmup_epochs": config.training.warmup_epochs,
             "max_epochs": config.training.max_epochs,
         },
-        train_loss="edge",
+        train_loss=tuple(config.training.train_loss) if len(config.training.train_loss) > 1 else str(config.training.train_loss[0]),
         val_loss=["rmse", "pearson", "mean_bias", "mse"],
         test_loss=["rmse", "pearson", "mean_bias"],
         train_target_transform=None,

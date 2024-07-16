@@ -16,7 +16,7 @@ from src.climate_learn import (IterDataModule, LitModule,
 from src.climate_learn.data.processing.era5_constants import (
     DEFAULT_PRESSURE_LEVELS, PRESSURE_LEVEL_VARS)
 
-torch.set_float32_matmul_precision("high")
+torch.set_float32_matmul_precision("medium")
 
 @hydra.main(config_path="/app/configs/train", config_name="era5-era5")
 def main(cfg: DictConfig):
@@ -108,8 +108,8 @@ def setup_model(dm, config):
         val_loss=["rmse", "pearson", "mean_bias", "mse"],
         test_loss=["rmse", "pearson", "mean_bias"],
         train_target_transform=None,
-        val_target_transform=["denormalize", "denormalize", "denormalize", None, "denormalize"],
-        test_target_transform=["denormalize", "denormalize", "denormalize", "denormalize"],
+        val_target_transform=["denormalize", "denormalize", "denormalize", None],
+        test_target_transform=["denormalize", "denormalize", "denormalize"],
     )
     return model
 
