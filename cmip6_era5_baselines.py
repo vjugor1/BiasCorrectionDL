@@ -13,12 +13,12 @@ torch.set_float32_matmul_precision("medium")
 
 parser = ArgumentParser()
 parser.add_argument(
-    "--cmip6_low_res_dir",
+    "--low_res_dir",
     type=str,
     default="/app/data/processed/cmip6-era5/cmip6/D",
 )
 parser.add_argument(
-    "--era5_high_res_dir",
+    "--high_res_dir",
     type=str,
     default="/app/data/processed/cmip6-era5/era5_0.25/D",
 )
@@ -51,8 +51,8 @@ out_vars = args.out_vars
 # Set up data
 dm = IterDataModule(
     task="downscaling",
-    inp_root_dir=args.cmip6_low_res_dir,
-    out_root_dir=args.era5_high_res_dir,
+    inp_root_dir=args.low_res_dir,
+    out_root_dir=args.high_res_dir,
     in_vars=in_vars,
     out_vars=out_vars,
     subsample=1,

@@ -7,8 +7,8 @@ import pytorch_lightning as pl
 
 
 parser = ArgumentParser()
-parser.add_argument("era5_low_res_dir")
-parser.add_argument("era5_high_res_dir")
+parser.add_argument("low_res_dir")
+parser.add_argument("high_res_dir")
 args = parser.parse_args()
 
 # Set up data
@@ -19,8 +19,8 @@ in_vars = out_vars = [
 ]
 dm = cl.data.IterDataModule(
     "downscaling",
-    args.era5_low_res_dir,
-    args.era5_high_res_dir,
+    args.low_res_dir,
+    args.high_res_dir,
     in_vars,
     out_vars,
     subsample=1,

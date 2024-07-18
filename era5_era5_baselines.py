@@ -10,16 +10,16 @@ from pytorch_lightning.callbacks import RichModelSummary, RichProgressBar
 from src.climate_learn import load_downscaling_module
 from src.climate_learn.data import IterDataModule
 
-torch.set_float32_matmul_precision("high")
+torch.set_float32_matmul_precision("medium")
 
 parser = ArgumentParser()
 parser.add_argument(
-    "--era5_low_res_dir",
+    "--low_res_dir",
     type=str,
     default="/app/data/ClimateLearn/processed/weatherbench/era5/5.625deg",
 )
 parser.add_argument(
-    "--era5_high_res_dir",
+    "--high_res_dir",
     type=str,
     default="/app/data/ClimateLearn/processed/weatherbench/era5/2.8125deg",
 )
@@ -34,8 +34,8 @@ in_vars = out_vars = [
 
 dm = IterDataModule(
     task="downscaling",
-    inp_root_dir=args.era5_low_res_dir,
-    out_root_dir=args.era5_high_res_dir,
+    inp_root_dir=args.low_res_dir,
+    out_root_dir=args.high_res_dir,
     in_vars=in_vars,
     out_vars=out_vars,
     subsample=1,

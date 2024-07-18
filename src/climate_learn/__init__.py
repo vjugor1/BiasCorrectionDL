@@ -9,5 +9,5 @@ from .utils.loaders import (
     load_loss,
     load_transform,
 )
-from .models import LitModule
+from .models import LitModule, GANLitModule
 from .data import download_weatherbench, convert_nc2npz, IterDataModule

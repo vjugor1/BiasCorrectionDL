@@ -62,17 +62,10 @@ def setup_data_module(config):
     in_vars = config.data.in_variables
     out_vars = config.data.out_variables
     
-    # if config.model.architecture == "diffusion":
-    #     out_vars = config.data.out_variables
-    #     for var in out_vars:
-    #         in_vars.remove(var)
-    #     in_vars = out_vars + in_vars
-    #     assert out_vars == in_vars[:len(out_vars)], "Out variables' names (`out_vars`) must be placed in the beginning of `in_vars`"
-        
     dm = IterDataModule(
         task="downscaling",
-        inp_root_dir=config.data.cmip6_low_res_dir,
-        out_root_dir=config.data.era5_high_res_dir,
+        inp_root_dir=config.data.low_res_dir,
+        out_root_dir=config.data.high_res_dir,
         in_vars=in_vars,
         out_vars=out_vars,
         subsample=config.data.subsample,
@@ -88,13 +81,16 @@ def setup_model(dm, config):
         data_module=dm,
         architecture=config.model.architecture,
         upsampling=config.model.upsampling,
-        optim_kwargs={"lr": config.training.learning_rate},
+        optim_kwargs={"lr": config.training.learning_rate,
+                      "weight_decay": config.training.weight_decay,
+                      "betas": tuple(config.training.betas),
+                      },
         sched="linear-warmup-cosine-annealing",
         sched_kwargs={
             "warmup_epochs": config.training.warmup_epochs,
             "max_epochs": config.training.max_epochs,
         },
-        train_loss="mse",
+        train_loss=tuple(config.training.train_loss) if len(config.training.train_loss) > 1 else str(config.training.train_loss[0]),
         val_loss=["rmse", "pearson", "mean_bias", "mse"],
         test_loss=["rmse", "pearson", "mean_bias"],
         train_target_transform=None,
@@ -125,7 +121,7 @@ def setup_trainer(config, default_root_dir):
         LearningRateMonitor(logging_interval="epoch"),
     ]
     trainer = pl.Trainer(
-        accumulate_grad_batches=4,
+        # accumulate_grad_batches=4,
         enable_progress_bar=True,
         logger=logger,
         callbacks=callbacks,

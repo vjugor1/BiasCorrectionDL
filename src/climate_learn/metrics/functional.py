@@ -135,6 +135,22 @@ def pearson(
 
 
 @handles_probabilistic
+def bce(
+    pred: Pred,
+    target: Union[torch.FloatTensor, torch.DoubleTensor],
+    aggregate_only: bool = True,
+) -> Union[torch.FloatTensor, torch.DoubleTensor]:
+    bce_loss = torch.nn.BCEWithLogitsLoss(reduction='none')(pred, target)
+    # Calculate the mean BCE loss per class
+    per_class_bce = bce_loss.mean(dim=0)  # Mean across the batch dimension
+    # Calculate the overall mean BCE loss
+    bce = per_class_bce.mean()
+    if aggregate_only:
+        return bce
+    # Return individual class BCE losses along with the aggregate
+    return torch.cat((per_class_bce, bce.unsqueeze(0)))
+
+@handles_probabilistic
 def mean_bias(
     pred: Pred,
     target: Union[torch.FloatTensor, torch.DoubleTensor],

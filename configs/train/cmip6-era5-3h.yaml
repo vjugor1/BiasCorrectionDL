@@ -1,8 +1,8 @@
 base_dir: "/app/data/experiments/downscaling-CMIP-ERA-3H"
 
 data:
-  cmip6_low_res_dir: "/app/data/processed/cmip6-era5/cmip6/3H"
-  era5_high_res_dir: "/app/data/processed/cmip6-era5/era5_0.25/3H"
+  low_res_dir: "/app/data/processed/cmip6-era5/cmip6/3H"
+  high_res_dir: "/app/data/processed/cmip6-era5/era5_0.25/3H"
   subsample: 1
   batch_size: 32
   buffer_size: 2000
@@ -14,18 +14,26 @@ data:
   out_variables: ["2m_temperature", "10m_u_component_of_wind", "10m_v_component_of_wind", "total_precipitation", "surface_pressure"]
 
 model:
-  # Model architecture options: "resnet", "unet", "vit", "samvit", "ynet", "deepsd", "diffusion"
+  # Model architecture options: "resnet", "unet", "vit", "samvit", "ynet", "deepsd", "diffusion", "dcgan", "edrn"
   architecture: "deepsd"
   # Upsampling method options: "bilinear", "bicubic", "unet_upsampling", "unet_upsampling_bilinear", "none"
-  # NOTE: Some models (e.g. ynet) do not support input upsampling, so they need this parameter set "none"
+  # NOTE: Some models (ynet, deepsd, diffusion, dcgan, edrn) do not support input upsampling, so they need this parameter set "none"
   upsampling: "none"
 
 training:
   summary_depth: 1
   max_epochs: 200
   patience: 5
-  learning_rate: 1e-5
+  learning_rate: 3e-4
+  weight_decay: 1e-5
+  betas: [0.9, 0.99]
   warmup_epochs: 5
+  train_loss: "mse"
+  perceptual_hp:        #works only with single gpu; total loss is content(pred,target) + feature_coeff * feature_loss + gram_coeff * gram_loss
+    feature_coeff: 0.01 #coefficient before \| phi_{relu_n}(pred) - phi_{relu_n}(target)) \|_2^2
+    gram_coeff: 0.01    #coefficient before \| phi_{relu_n}(pred) \cdot phi_{relu_n}(pred)^T - phi_{relu_n}(target) \cdot phi_{relu_n}(target)^T \|_F^2
+    relu_n: 2           #which conv-relu block number to get. the lower - the finer features are extracted, the higher - the more abstract
+    content: 'mse'      #content loss
   # GPU devices to use (e.g., [0] for single GPU, [0, 1] for multiple GPUs)
   gpus: [0]
   checkpoint: null

@@ -34,10 +34,10 @@ def run_zarr_load(cfg: DictConfig):
     
     if TASK == "era5-eobs":
         vars = [
-                # "2m_temperature",
-                # "minimum_temperature",
-                # "maximum_temperature",
-                # "rainfall",
+                "2m_temperature",
+                "minimum_temperature",
+                "maximum_temperature",
+                "rainfall",
                 "land_sea_mask",
                 "geopotential_at_surface"
         ]
@@ -57,11 +57,11 @@ def run_zarr_load(cfg: DictConfig):
     
     elif TASK == "cmip6-era5":
             vars = [
-                    # "2m_temperature",
-                    # "total_precipitation",
-                    # "10m_u_component_of_wind",
-                    # "10m_v_component_of_wind",
-                    # "surface_pressure",
+                    "2m_temperature",
+                    "total_precipitation",
+                    "10m_u_component_of_wind",
+                    "10m_v_component_of_wind",
+                    "surface_pressure",
                     "land_sea_mask",
                     "geopotential_at_surface"
                 ]
@@ -79,14 +79,11 @@ def run_zarr_load(cfg: DictConfig):
             for year in tqdm(years):
                 logging.info(f"Variable: {var}; Year: {year}")
                 
-                if var=="2m_temperature":
+                if var=="2m_temperature": #works for both "cmip6-era5" & "era5-eobs" tasks
                     data_var = data[var].sel(time=str(year))
-                    if TASK=="cmip6-era5":
-                        data_sel = data_var.resample(time='D').mean(dim=["time"])
-                        # data_sel = data_var.resample(time='3H').first()
-                    elif TASK=="era5-eobs":
-                        data_sel = data_var.resample(time='D').mean(dim=["time"])
-                    # # Adjust the path and save to zarr
+                    data_sel = data_var.resample(time='D').mean(dim=["time"])
+                    # data_sel = data_var.resample(time='3H').first() # era hour frequency
+                    # Adjust the path and save to zarr
                     zarr_path = os.path.join(PATH, var, "{}_{}.zarr".format(var, year))
                     data_sel.to_zarr(zarr_path, mode='w')
                     
@@ -117,22 +114,22 @@ def run_zarr_load(cfg: DictConfig):
                     data_var = data[var].sel(time=str(year))
                     data_sel = data_var.resample(time='D').mean(dim=["time"])
                     # data_sel = data_var.resample(time='3H').first()
-                    # # Adjust the path and save to zarr
+                    # Adjust the path and save to zarr
                     zarr_path = os.path.join(PATH, var, "{}_{}.zarr".format(var, year))
                     data_sel.to_zarr(zarr_path, mode='w')
 
                 elif var == "rainfall":   #"era5-eobs"
                     data_var = data["total_precipitation"].sel(time=str(year))
-                    data_sel = data_var.resample(time='D').sum(dim=["time"])  ## TODO check sum
-                    # # Adjust the path and save to zarr
+                    data_sel = data_var.resample(time='D').sum(dim=["time"])
+                    # Adjust the path and save to zarr
                     zarr_path = os.path.join(PATH, var, "{}_{}.zarr".format(var, year))
                     data_sel.to_zarr(zarr_path, mode='w')
                     
                 elif var == "wind_speed_mean":   #"era5-eobs" 
-                    # TODO
+                    # not used
                     data_var = data["total_precipitation"].sel(time=str(year))
-                    data_sel = data_var.resample(time='D').sum()
-                    # # Adjust the path and save to zarr
+                    data_sel = data_var.resample(time='D').mean()
+                    # Adjust the path and save to zarr
                     zarr_path = os.path.join(PATH, var, "{}_{}.zarr".format(var, year))
                     data_sel.to_zarr(zarr_path, mode='w')
                 
@@ -140,10 +137,10 @@ def run_zarr_load(cfg: DictConfig):
                     print(f"For variable {var} procedure not implemented")
     
     # Save constants.
-    # Be aware, that data from "constants.nc" goes to processed .npy files. To get rid of this, change the name somehow
+    # Be aware, that data from "constants.nc" goes to processed .npy files. To get rid of this, change the file name somehow
     const_path = os.path.join(PATH, "constants.nc")
     ds_const = xr.combine_by_coords(const_var)
-    print(ds_const)
+
     # Add latitude as new variable
     ds_const["lat_grid"] = xr.DataArray(data = np.array([ds_const['latitude']]*len(ds_const["longitude"])).T, coords=ds_const.coords)
     ds_const.to_netcdf(const_path, mode='w')     

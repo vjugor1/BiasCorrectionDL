@@ -43,6 +43,7 @@ from .eobs_constants import (
     CONSTANTS as constants_eobs
 )
 
+
 def nc2np(path,
           src,
           variables,
@@ -52,6 +53,7 @@ def nc2np(path,
           num_shards_per_year,
           frequency,
           regridder,
+          method,
           periodic,
           scale_factor,
           align_target
@@ -95,11 +97,15 @@ def nc2np(path,
         constants = xr.open_dataset(
             constants_path
         )
+
         # Avoid odd length of lat/lon
-        if any(len(ax)%2==1 for ax in list(constants.coords)):
-            regridder_const, _ = regrid(constants, periodic=periodic)
-            constants = regridder_const(constants, keep_attrs=True)
-        
+        # if any(len(ax)%2==1 for ax in list(constants.coords)):
+        #     regridder_const, _ = regrid(constants, method, periodic=periodic)
+        #     constants = regridder_const(constants, keep_attrs=True)
+            
+        lat_axis = [k for k in list(constants.dims) if 'lat' in k][0]
+        constants = constants.sortby(constants[lat_axis], ascending=False)
+
         constant_fields = [VAR_TO_NAME[v] for v in CONSTANTS if v in VAR_TO_NAME.keys()]
         constant_values = {}
         for f in constant_fields:
@@ -130,7 +136,7 @@ def nc2np(path,
             
             # Get variable name from data
             codes=list(ds.keys())
-            code = [x for x in codes if (x not in ["lat_bnds", "lon_bnds", "time_bnds"])][0] 
+            code = [x for x in codes if (x not in ["lat_bnds", "lon_bnds", "time_bnds", "depth_bnds"])][0] 
             
             if frequency=="3H":
                 if code in ["pr", "total_precipitation"]:
@@ -144,6 +150,7 @@ def nc2np(path,
             except ValueError:
                 # Falls here due to variations in eobs data only
                 regridder_current, _ = regrid(ds,
+                                              method,
                                               periodic=periodic,
                                               scale_factor=scale_factor,
                                               align_target =align_target)
@@ -165,13 +172,16 @@ def nc2np(path,
                 elif code in ["tg", "tx", "tn"]: #EOBS temp: C --> K
                     ds[code] = ds[code] + 273.15
                 
+                elif code=="mrsos":  #CMIP moisture in soil: Nan --> 0
+                    ds[code] = ds[code].fillna(0)
+                
+                lat_axis = [k for k in list(ds.dims) if 'lat' in k][0]
+                ds = ds.sortby(ds[lat_axis], ascending=False)
                 # remove the last 24 hours if this year has 366 days
                 np_vars[var] = ds[code].to_numpy()[:OBJ_PER_YEAR]
 
                 if partition == "train":
                     # compute mean and std of each var in each year
-                    # var_mean_yearly = np_vars[var].mean(axis=(0, 2, 3))
-                    # var_std_yearly = np_vars[var].std(axis=(0, 2, 3))
                     var_mean_yearly = np.nanmean(np_vars[var], axis=(0, 2, 3))
                     var_std_yearly = np.nanstd(np_vars[var], axis=(0, 2, 3))
                     if var not in normalize_mean:
@@ -264,45 +274,54 @@ def nc2np(path,
 
 
 def regrid(ds_in: xr.Dataset,
+           method,
            periodic: bool,
            scale_factor: Optional[Union[int, float]]=1,
            align_target: Optional[str]=None
            ):
     if not align_target:
         ds_target=ds_in
-    elif "cmip6-era5" in align_target:
+    elif "era5-eobs" in align_target:
         var=glob.glob(os.path.join(align_target, "*"))[0].split("/")[-1]
         ds_target = open_era(align_target, var)
-    elif "era5-eobs" in align_target:
-        var = glob.glob(os.path.join(align_target, "*"))[0].split("/")[-1]
-        ds_target = open_era(align_target, var)
-
-    if len(ds_target["latitude"])%2!=0:
-        n_cells_lat=(len(ds_target["latitude"])-1)/scale_factor
+        
+    elif "cmip6-cmip6" in align_target:
+        var=glob.glob(os.path.join(align_target, "*"))[0].split("/")[-1]
+        ds_target = open_cmip(align_target, var)
+        # ds_in= ds_in.rename({"lon": "longitude", "lat":"latitude"})
+        
+    lat_axis = [k for k in list(ds_target.dims) if 'lat' in k][0]
+    lon_axis = [k for k in list(ds_target.dims) if 'lon' in k][0]
+    if len(ds_target[lat_axis])%2!=0:
+        n_cells_lat=(len(ds_target[lat_axis])-1)/scale_factor
     else:
-        n_cells_lat=len(ds_target["latitude"])/scale_factor
+        n_cells_lat=len(ds_target[lat_axis])/scale_factor
     if periodic==True:
-        n_cells_lon=len(ds_target["longitude"])/scale_factor
+        n_cells_lon=len(ds_target[lon_axis])/scale_factor
     else:
-        n_cells_lon=(len(ds_target["longitude"])-1)/scale_factor
+        n_cells_lon=(len(ds_target[lon_axis])-1)/scale_factor
 
     lon_new = np.linspace(
-        np.min(ds_target["longitude"].values),
-        np.max(ds_target["longitude"].values),
+        np.min(ds_target[lon_axis].values),
+        np.max(ds_target[lon_axis].values),
         int(n_cells_lon))
     lat_new = np.linspace(
-        np.min(ds_target["latitude"].values),
-        np.max(ds_target["latitude"].values),
+        np.max(ds_target[lat_axis].values),
+        np.min(ds_target[lat_axis].values),
         int(n_cells_lat))
 
-    grid_out = {'lon': lon_new, 'lat': lat_new}
-    
+    ds_out = xr.Dataset(
+        coords=dict(
+            lon=(["lon"], lon_new),
+            lat=(["lat"], lat_new))
+    )
+
     regridder = xesmf.Regridder(ds_in,
-                                grid_out,
-                                "bilinear",
+                                ds_out,
+                                method,
                                 periodic=periodic
                                 )
-    return regridder, grid_out
+    return regridder, ds_out.coords
 
 
 def convert_nc2npz(
@@ -330,25 +349,32 @@ def convert_nc2npz(
     test_years = range(start_test_year, end_year)
     os.makedirs(save_dir, exist_ok=True)
     
+    # Open random file to create regridder
     if src=="eobs":
         var = name_to_var_eobs[variables[0]]
         ds = open_eobs(root_dir, var)
+        method = "conservative"
     elif src=="era5":
         ds = open_era(root_dir, variables[0])
+        method = "conservative"
     elif src=="cmip6":
         ds = open_cmip(root_dir, variables[0])
+        method = "bilinear"
         
     # create regridder and save lat/lon data
-    regridder, grid_out = regrid(ds, periodic, scale_factor, align_target)
+    regridder, grid_out = regrid(ds, method, periodic, scale_factor, align_target)
     lat = grid_out["lat"]
     lon = grid_out["lon"]
     
     np.save(os.path.join(save_dir, "lat.npy"), lat)
     np.save(os.path.join(save_dir, "lon.npy"), lon)
         
-    nc2np(root_dir, src, variables, train_years, save_dir, "train", num_shards, frequency, regridder, periodic, scale_factor, align_target)
-    nc2np(root_dir, src, variables, val_years, save_dir, "val", num_shards, frequency, regridder, periodic, scale_factor, align_target)
-    nc2np(root_dir, src, variables, test_years, save_dir, "test", num_shards, frequency, regridder, periodic, scale_factor, align_target)
+    nc2np(root_dir, src, variables, train_years, save_dir, "train", num_shards, frequency,
+          regridder, method, periodic, scale_factor, align_target)
+    nc2np(root_dir, src, variables, val_years, save_dir, "val", num_shards, frequency,
+          regridder, method, periodic, scale_factor, align_target)
+    nc2np(root_dir, src, variables, test_years, save_dir, "test", num_shards, frequency,
+          regridder, method, periodic, scale_factor, align_target)
     
     
 def open_era(root_dir, var):
@@ -364,6 +390,7 @@ def open_cmip(root_dir, var):
     ds = xr.open_mfdataset(
             ps, combine="by_coords", parallel=True
         )
+    # ds = ds.drop_dims(["bnds"]) # use for "conservative" regrid
     return ds
 
 

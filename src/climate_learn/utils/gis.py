@@ -164,3 +164,51 @@ def prepare_deepsd_elevation(data_module, path_to_elevation):
             current_shape[1], current_shape[0],
         )   
     return elevation_list[::-1]
+
+def prepare_dcgan_elevation(data_module, path_to_elevation):
+    """Prepares the DCGAN elevation data at the output size."""
+    
+    if path_to_elevation is None:
+        raise TypeError("The path to elevation dataset is None.")
+    
+    if not os.path.isfile(path_to_elevation):
+        raise FileNotFoundError(f"The file at {path_to_elevation} does not exist.")
+
+    # Load and preprocess the high-resolution dataset
+    with xr.open_dataset(path_to_elevation) as elevation_ds:
+        elevation_ds = (
+            elevation_ds.assign_coords(X=(elevation_ds.X % 360))
+            .sortby("X")
+            .rename({"X": "lon", "Y": "lat"})
+        )
+        elevation_ds["topo"].values = (
+            np.log1p(np.nan_to_num(elevation_ds["topo"].values)) / 9
+        )
+
+    # Calculate the high-resolution transform
+    high_res_transform = _calculate_transform(elevation_ds)
+    
+    target_lat, target_lon = data_module.get_lat_lon()
+
+    # Ensure latitude array is in descending order
+    target_lat = target_lat[::-1] if target_lat[0] < target_lat[-1] else target_lat
+
+    target_shape = (len(target_lat), len(target_lon))
+    target_transform = from_bounds(
+        target_lon.min(), target_lat.min(),
+        target_lon.max(), target_lat.max(),
+        len(target_lon), len(target_lat),
+    )
+    
+    # Reproject the data
+    reprojected_data = _reproject_elevation(elevation_ds["topo"].values, target_shape, high_res_transform, target_transform)
+    
+    # Create the new reprojected dataset
+    new_elevation_ds = xr.Dataset(
+        {"topo": (["lat", "lon"], reprojected_data)},
+        coords={"lat": target_lat, "lon": target_lon},
+    )
+
+    new_elevation_tensor = torch.from_numpy(new_elevation_ds["topo"].values).unsqueeze(0)
+    
+    return new_elevation_tensor

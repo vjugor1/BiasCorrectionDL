@@ -1,12 +1,13 @@
 # Standard library
-from typing import Any, Callable, Dict, Iterable, Optional, Union
+from typing import Any, Callable, Dict, Iterable, Optional, Union, Tuple
 from functools import partial
 import warnings
+import numpy as np
 
 # Local application
-from .gis import prepare_ynet_climatology, prepare_deepsd_elevation
+from .gis import prepare_ynet_climatology, prepare_deepsd_elevation, prepare_dcgan_elevation
 from ..data import IterDataModule
-from ..models import LitModule, DiffusionLitModule, DeepSDLitModule, YnetLitModule, MODEL_REGISTRY
+from ..models import LitModule, DiffusionLitModule, DeepSDLitModule, YnetLitModule, GANLitModule, ESRGANLitModule, MODEL_REGISTRY
 from ..models.hub import (
     Climatology,
     Interpolation,
@@ -20,6 +21,9 @@ from ..models.hub import (
     GaussianDiffusion,
     YNet30,
     DeepSD,
+    DCGAN,
+    EDRN,
+    ESRGAN
     
 )
 from ..models.lr_scheduler import LinearWarmupCosineAnnealingLR
@@ -43,10 +47,11 @@ def load_model_module(
     sched: Optional[Union[str, LRScheduler]] = None,
     sched_kwargs: Optional[Dict[str, Any]] = None,
     upsampling: Optional[str] = None,
-    train_loss: Optional[Union[str, Callable]] = None,
+    train_loss: Optional[Union[str, Callable, Tuple]] = None,
+    train_loss_kwargs: Optional[Dict[str, Any]] = None,
     val_loss: Optional[Iterable[Union[str, Callable]]] = None,
     test_loss: Optional[Iterable[Union[str, Callable]]] = None,
-    train_target_transform: Optional[Union[str, Callable]] = None,
+    train_target_transform: Optional[Union[str, Callable, Tuple]] = None,
     val_target_transform: Optional[Iterable[Union[str, Callable]]] = None,
     test_target_transform: Optional[Iterable[Union[str, Callable]]] = None,
     path_to_elevation: Optional[str] = "/app/data/elevation.nc",
@@ -56,13 +61,15 @@ def load_model_module(
     lat, lon = data_module.get_lat_lon()
     if lat is None and lon is None:
         raise RuntimeError("Data module has not been set up yet.")
+    
     # Load the model
     if architecture is None and model is None:
         raise RuntimeError("Please specify 'architecture' or 'model'")
     elif architecture:
         print(f"Loading architecture: {architecture}")
         model, optimizer, lr_scheduler = load_architecture(
-            task, data_module, architecture, upsampling
+            task, data_module, architecture, upsampling, 
+            optim_kwargs, model_kwargs, sched_kwargs
         )
     elif isinstance(model, str):
         print(f"Loading model: {model}")
@@ -78,6 +85,7 @@ def load_model_module(
         print("Using custom network")
     else:
         raise TypeError("'model' must be str or nn.Module")
+    
     # Load the optimizer
     if architecture is None and optim is None:
         raise RuntimeError("Please specify 'architecture' or 'optim'")
@@ -91,6 +99,7 @@ def load_model_module(
         print("Using custom optimizer")
     else:
         raise TypeError("'optim' must be str or torch.optim.Optimizer")
+    
     # Load the LR scheduler, if specified
     if architecture:
         print("Using learning rate scheduler associated with architecture")
@@ -108,6 +117,7 @@ def load_model_module(
         raise TypeError(
             "'sched' must be str, None, or torch.optim.lr_scheduler._LRScheduler"
         )
+
     # Load training loss
     in_vars, out_vars = get_data_variables(data_module)
     lat, lon = data_module.get_lat_lon()
@@ -115,15 +125,31 @@ def load_model_module(
         print(f"Loading training loss: {train_loss}")
         clim = get_climatology(data_module, "train")
         metainfo = MetricsMetaInfo(in_vars, out_vars, lat, lon, clim)
-        train_loss = load_loss(train_loss, True, metainfo)
+        if train_loss == 'perceptual':
+            train_loss = load_loss(train_loss, True, metainfo, **train_loss_kwargs)
+        else:
+            train_loss = load_loss(train_loss, True, metainfo)
+    elif isinstance(train_loss, tuple):
+        print(f"Loading training loss: {train_loss}")
+        clim = get_climatology(data_module, "train")
+        metainfo = MetricsMetaInfo(in_vars, out_vars, lat, lon, clim)
+        train_lossG = load_loss(train_loss[0], True, metainfo)
+        train_lossD = load_loss(train_loss[1], True, metainfo)
+        train_loss = (train_lossG, train_lossD)
     elif isinstance(train_loss, Callable):
         print("Using custom training loss")
     else:
-        raise TypeError("'train_loss' must be str or Callable")
+        raise TypeError("'train_loss' must be str, tuple or Callable")
+
     # Load training transform
     if isinstance(train_target_transform, str):
         print(f"Loading training transform: {train_target_transform}")
         train_transform = load_transform(train_target_transform, data_module)
+    elif isinstance(train_target_transform, tuple):
+        print(f"Loading training transform: {train_target_transform}")
+        train_transformG = load_transform(train_target_transform, data_module)
+        train_transformD = load_transform(train_target_transform, data_module)
+        train_transform = (train_transformG, train_transformD)
     elif isinstance(train_target_transform, Callable):
         print("Using custom training transform")
         train_transform = train_target_transform
@@ -131,7 +157,8 @@ def load_model_module(
         print("No train transform")
         train_transform = train_target_transform
     else:
-        raise TypeError("'train_target_transform' must be str, callable, or None")
+        raise TypeError("'train_target_transform' must be str, tuple, Callable, or None")
+    
     # Load validation loss
     if not isinstance(val_loss, Iterable):
         raise TypeError("'val_loss' must be an iterable")
@@ -147,6 +174,7 @@ def load_model_module(
             val_losses.append(vl)
         else:
             raise TypeError("each 'val_loss' must be str or Callable")
+        
     # Load validation transform
     val_transforms = []
     if isinstance(val_target_transform, Iterable):
@@ -169,6 +197,7 @@ def load_model_module(
             "'val_target_transform' must be an iterable of strings/callables,"
             " or None"
         )
+        
     # Load test loss
     if not isinstance(test_loss, Iterable):
         raise TypeError("'test_loss' must be an iterable")
@@ -184,6 +213,7 @@ def load_model_module(
             test_losses.append(tl)
         else:
             raise TypeError("each 'test_loss' must be str or Callable")
+        
     # Load test transform
     test_transforms = []
     if isinstance(test_target_transform, Iterable):
@@ -249,6 +279,34 @@ def load_model_module(
             test_transforms,
             elevation_list,
         )
+    elif architecture == "dcgan":
+        elevation = prepare_dcgan_elevation(data_module, path_to_elevation)
+        model_module = GANLitModule(
+            model,
+            optimizer,
+            lr_scheduler,
+            train_loss,
+            val_losses,
+            test_losses,
+            train_transform,
+            val_transforms,
+            test_transforms,
+            elevation
+
+        )
+    elif architecture == "esrgan":
+        model_module = ESRGANLitModule(
+            model,
+            optimizer,
+            lr_scheduler,
+            train_loss,
+            val_losses,
+            test_losses,
+            train_transform,
+            val_transforms,
+            test_transforms,
+
+        )
     else:
         model_module = LitModule(
             model,
@@ -299,8 +357,9 @@ load_downscaling_module  = partial(
 )
 
 
-def load_architecture(task, data_module, architecture, upsampling):
-    in_vars, out_vars = get_data_variables(data_module)
+def load_architecture(task, data_module, architecture, upsampling,
+                      optim_kwargs, model_kwargs, sched_kwargs):
+    in_vars, out_vars = get_data_variables(data_module) 
     in_shape, out_shape = get_data_dims(data_module)
     
     def raise_not_impl():
@@ -431,6 +490,24 @@ def load_architecture(task, data_module, architecture, upsampling):
                     num_features=64,
                     scale=out_width // in_width,
                 )
+            elif architecture == "dcgan":
+                backbone = DCGAN(
+                    in_channels,
+                    out_channels,
+                    scale=out_width // in_width,
+                )
+            elif architecture == "edrn":
+                backbone = EDRN(
+                    in_channels,
+                    out_channels,
+                    scale=out_width // in_width,
+                )
+            elif architecture == "esrgan":
+                backbone = ESRGAN(
+                    in_channels,
+                    out_channels,
+                    scale=out_width // in_width,
+                )
             else:
                 raise_not_impl()
             if upsampling is None or upsampling.lower() == "none":
@@ -450,20 +527,45 @@ def load_architecture(task, data_module, architecture, upsampling):
                     )
             else:
                 raise_not_impl()
+            
+            if architecture == "dcgan" or architecture == "esrgan":
+                optimizerG = load_optimizer(
+                model.generator,
+                "adam",
+                optim_kwargs
+                )
+                optimizerD = load_optimizer(
+                model.discriminator,
+                "adam",
+                # optim_kwargs
+                {"lr": 2e-5, "weight_decay": 1e-5, "betas": (0.9, 0.99)}
+                )
+                optimizer = (optimizerG, optimizerD)
                 
-            optimizer = load_optimizer(
-                model, "adamw", {"lr": 1e-5, "weight_decay": 1e-5, "betas": (0.9, 0.99)}
-            )
-            lr_scheduler = load_lr_scheduler(
-                "linear-warmup-cosine-annealing",
-                optimizer,
-                {
-                    "warmup_epochs": 5,
-                    "max_epochs": 50,
-                    "warmup_start_lr": 1e-8,
-                    "eta_min": 1e-8,
-                },
-            )
+                lr_schedulerG = load_lr_scheduler(
+                                                "linear-warmup-cosine-annealing",
+                                                optimizerG,
+                                                sched_kwargs
+                                                )
+                lr_schedulerD = load_lr_scheduler(
+                                                "linear-warmup-cosine-annealing",
+                                                optimizerG,
+                                                sched_kwargs
+                                                )
+                lr_scheduler = (lr_schedulerG, lr_schedulerD)
+                
+            else:
+                optimizer = load_optimizer(
+                model, "adamw",
+                optim_kwargs
+                # {"lr": 1e-5, "weight_decay": 1e-5, "betas": (0.9, 0.99)}
+                )
+
+                lr_scheduler = load_lr_scheduler(
+                    "linear-warmup-cosine-annealing",
+                    optimizer,
+                    sched_kwargs
+                )
     return model, optimizer, lr_scheduler
 
 
@@ -504,6 +606,11 @@ def load_lr_scheduler(
         lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
             optimizer, **sched_kwargs
         )
+    elif sched == "lambdaLR":
+        lrdecay_lambda = lambda epoch: cosine_decay(epoch, **sched_kwargs)
+        lr_scheduler = torch.optim.lr_scheduler.LambdaLR(
+            optimizer, lr_lambda=lrdecay_lambda
+        )
     else:
         raise NotImplementedError(
             f"{sched} is not an implemented learning rate scheduler. If you"
@@ -513,7 +620,7 @@ def load_lr_scheduler(
     return lr_scheduler
 
 
-def load_loss(loss_name, aggregate_only, metainfo):
+def load_loss(loss_name, aggregate_only, metainfo, **kwargs):
     loss_cls = METRICS_REGISTRY.get(loss_name, None)
     if loss_cls is None:
         raise NotImplementedError(
@@ -521,7 +628,7 @@ def load_loss(loss_name, aggregate_only, metainfo):
             " please raise an issue at"
             " https://gtihub.com/aditya-grover/climate-learn/issues"
         )
-    loss = loss_cls(aggregate_only=aggregate_only, metainfo=metainfo)
+    loss = loss_cls(aggregate_only=aggregate_only, metainfo=metainfo, **kwargs)
     return loss
 
 
@@ -541,6 +648,10 @@ def get_data_dims(data_module):
     return data_module.get_data_dims()
 
 
+def get_gan_data_dims(data_module):
+    return data_module.get_gan_data_dims()
+
+
 def get_data_variables(data_module):
     return data_module.get_data_variables()
 
@@ -553,3 +664,9 @@ def get_climatology(data_module, split):
     if isinstance(clim, dict):
         clim = torch.stack(tuple(clim.values()))
     return clim
+
+def cosine_decay(epoch, warmup_epochs=100, max_epochs=10000):
+    if epoch <= warmup_epochs:
+        return (epoch / warmup_epochs)
+    else:
+        return 0.25 * (1 + np.cos((epoch - warmup_epochs)/max_epochs * np.pi))
