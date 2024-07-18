@@ -39,7 +39,7 @@ training:
     relu_n: 2           #which conv-relu block number to get. the lower - the finer features are extracted, the higher - the more abstract
     content: 'mse'      #content loss
   # GPU devices to use (e.g., [0] for single GPU, [0, 1] for multiple GPUs)
-  gpus: [4]
+  gpus: [0]
   checkpoint: null
   # Early stopping configuration
   early_stopping: "val/mse:aggregate"
