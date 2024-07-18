@@ -14,12 +14,12 @@ torch.set_float32_matmul_precision("medium")
 
 parser = ArgumentParser()
 parser.add_argument(
-    "--low_res_dir",
+    "--era5_low_res_dir",
     type=str,
     default="/app/data/ClimateLearn/processed/weatherbench/era5/5.625deg",
 )
 parser.add_argument(
-    "--high_res_dir",
+    "--era5_high_res_dir",
     type=str,
     default="/app/data/ClimateLearn/processed/weatherbench/era5/2.8125deg",
 )

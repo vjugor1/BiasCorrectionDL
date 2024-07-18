@@ -3,7 +3,7 @@ local_path: 'era5_0.25_D'
 task: 'era5-eobs' # "era5-eobs" | "cmip6-era5" 
 
 year_start: 1959
-year_end: 1985
+year_end: 2014
 
 # variables
 # single_level_vars:
