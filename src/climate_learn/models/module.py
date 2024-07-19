@@ -256,7 +256,8 @@ class DiffusionLitModule(LitModule):
         batch: Tuple[torch.Tensor, torch.Tensor, List[str], List[str]],
     ) -> torch.Tensor:
         x, y, in_variables, out_variables = batch
-        
+        if self.train_target_transform:
+            y = self.train_target_transform(y)
         img_hr = y
         img_lr = x
         img_lr_up = self.net.upscaler(img_lr[...,:len(out_variables),:,:]) #extracting hr channels
@@ -334,6 +335,8 @@ class YnetLitModule(LitModule):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         if self.x_aux is not None:
+            if self.train_target_transform:
+                self.x_aux = self.train_target_transform(self.x_aux)
             x_aux_expanded = self.x_aux.to(x.dtype).to(x.device)
             x_aux_expanded = x_aux_expanded.unsqueeze(0).expand(x.size(0), *self.x_aux.size())
             return self.net(x, x_aux_expanded)
@@ -404,6 +407,8 @@ class GANLitModule(LitModule):
         batch: Tuple[torch.Tensor, torch.Tensor, List[str], List[str]],
     ) -> torch.Tensor:
         x, y, _, _ = batch
+        if self.train_target_transform:
+            y = self.train_target_transform(y)
         optimizerG, optimizerD = self.optimizers()
         lossG, lossD = self.train_loss
         

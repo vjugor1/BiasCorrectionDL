@@ -158,9 +158,11 @@ def nc2np(path,
             
             if len(ds[code].shape) == 3:  # surface level variables
                 ds[code] = ds[code].expand_dims("val", axis=1)
-                if code == "total_precipitation":  
-                    ds[code] = ds[code] * 1000   #ERA precip: m --> mm
-
+                if code=="rr": #EOBS precip: mm --> m
+                    ds[code] = ds[code]/1000
+                # TODO if ERA_CMIP precip: m <--> mm
+                # if code == "total_precipitation":  
+                
                 elif code=="pr": #CMIP precipitation: kg/m2/s --> mm
                     if frequency=="3H":
                         ds[code] = ds[code]*60*60*3
@@ -177,9 +179,9 @@ def nc2np(path,
                 
                 lat_axis = [k for k in list(ds.dims) if 'lat' in k][0]
                 ds = ds.sortby(ds[lat_axis], ascending=False)
+                
                 # remove the last 24 hours if this year has 366 days
                 np_vars[var] = ds[code].to_numpy()[:OBJ_PER_YEAR]
-
                 if partition == "train":
                     # compute mean and std of each var in each year
                     var_mean_yearly = np.nanmean(np_vars[var], axis=(0, 2, 3))
@@ -191,8 +193,8 @@ def nc2np(path,
                         normalize_mean[var].append(var_mean_yearly)
                         normalize_std[var].append(var_std_yearly)
 
-                clim_yearly = np_vars[var].mean(axis=0)
-                # clim_yearly = np.nanmean(np_vars[var], axis=0)
+                # clim_yearly = np_vars[var].mean(axis=0)
+                clim_yearly = np.nanmean(np_vars[var], axis=0)
                 if var not in climatology:
                     climatology[var] = [clim_yearly]
                 else:

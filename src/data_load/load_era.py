@@ -8,19 +8,19 @@ import hydra
 from omegaconf import DictConfig, OmegaConf
 
 
-@hydra.main(version_base=None, config_path=os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), "configs"), config_name="bias_correction.yaml")
+@hydra.main(version_base=None, config_path=os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), "configs/load"), config_name="era.yaml")
 def run_zarr_load(cfg: DictConfig):
     
-    TASK = cfg.load.task
+    TASK = cfg.task
     # Define time period for analysis
-    YEAR_START = cfg.load["year_start"]
-    YEAR_END = cfg.load["year_end"]
+    YEAR_START = cfg["year_start"]
+    YEAR_END = cfg["year_end"]
 
     # Years range
     years = range(YEAR_START, YEAR_END + 1)
 
     # Path to save files
-    PATH = os.path.join(cfg.load.save_path, TASK, cfg.load.local_path)
+    PATH = os.path.join(cfg.save_path, TASK, cfg.local_path)
     os.makedirs(PATH, exist_ok=True)
 
     # # vars = cfg.load["single_level_vars"]
@@ -47,10 +47,10 @@ def run_zarr_load(cfg: DictConfig):
         data = data.sortby(data.longitude)
 
         # Get eobs bounds
-        top = cfg.load.eobs_bounds.top
-        bottom = cfg.load.eobs_bounds.bottom
-        left = cfg.load.eobs_bounds.left
-        right = cfg.load.eobs_bounds.right
+        top = cfg.eobs_bounds.top
+        bottom = cfg.eobs_bounds.bottom
+        left = cfg.eobs_bounds.left
+        right = cfg.eobs_bounds.right
         
         # Clip source data with e-obs boundaries
         data = data.sel(latitude=slice(top,bottom), longitude=slice(left,right))
@@ -71,7 +71,7 @@ def run_zarr_load(cfg: DictConfig):
     
     # Loop over variables
     for var in vars:
-        if var in cfg.load["constants"]:
+        if var in cfg["constants"]:
             logging.info(f"Variable: {var}")
             const_var.append(data[var])
         
@@ -87,7 +87,7 @@ def run_zarr_load(cfg: DictConfig):
                     zarr_path = os.path.join(PATH, var, "{}_{}.zarr".format(var, year))
                     data_sel.to_zarr(zarr_path, mode='w')
                     
-                elif var== "minimum_temperature":   #"era5-eobs"
+                if var== "minimum_temperature":   #"era5-eobs"
                     data_var = data["2m_temperature"].sel(time=str(year))
                     data_sel = data_var.resample(time='D').min(dim=['time'])
                     # Adjust the path and save to zarr
