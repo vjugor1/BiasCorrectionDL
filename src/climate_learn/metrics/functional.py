@@ -8,8 +8,7 @@ from .utils import Pred, handles_probabilistic
 import torch
 import torch.nn.functional as F
 from pytorch_msssim import ssim as ssim_func
-import hydroeval as he
-
+import numpy as np
 
 @handles_probabilistic
 def mse(
@@ -313,18 +312,69 @@ def kge(
     aggregate_only: bool = False,
     lat_weights: Optional[Union[torch.FloatTensor, torch.DoubleTensor]] = None,
 ) -> Union[torch.FloatTensor, torch.DoubleTensor]:
+      
     if lat_weights is not None:
         pred = pred * lat_weights
         target = target * lat_weights
     
-    per_channel_losses = []
-    for i in range(pred.shape[1]):
-        kge, r, alpha, beta = he.evaluator(he.kge,
-                                           torch.ravel(pred[:, i]),
-                                           torch.ravel(target[:, i]))
-        per_channel_losses.append(kge)
+    num_channels = pred.shape[1]
+    per_channel_losses = torch.empty(num_channels)
+
+    for i in range(num_channels):
+        pred_channel = torch.ravel(pred[:, i])
+        target_channel = torch.ravel(target[:, i])
+        kge, r, alpha, beta = kge_torch(pred_channel, target_channel)
+        per_channel_losses[i] = kge
+        
     per_channel_losses = torch.tensor(per_channel_losses).squeeze()
     loss = per_channel_losses.mean()
     if aggregate_only:
         return loss
     return torch.cat((per_channel_losses, loss.unsqueeze(0)))
+
+
+
+def kge_torch(simulations, evaluation):
+    """Original Kling-Gupta Efficiency (KGE) and its three components
+    (r, α, β) as per `Gupta et al., 2009
+    <https://doi.org/10.1016/j.jhydrol.2009.08.003>`_.
+
+    Note, all four values KGE, r, α, β are returned, in this order.
+
+    :Calculation Details:
+        .. math::
+           E_{\\text{KGE}} = 1 - \\sqrt{[r - 1]^2 + [\\alpha - 1]^2
+           + [\\beta - 1]^2}
+        .. math::
+           r = \\frac{\\text{cov}(e, s)}{\\sigma({e}) \\cdot \\sigma(s)}
+        .. math::
+           \\alpha = \\frac{\\sigma(s)}{\\sigma(e)}
+        .. math::
+           \\beta = \\frac{\\mu(s)}{\\mu(e)}
+
+        where *e* is the *evaluation* series, *s* is (one of) the
+        *simulations* series, *cov* is the covariance, *σ* is the
+        standard deviation, and *μ* is the arithmetic mean.
+
+    """
+    # calculate error in timing and dynamics r
+    # (Pearson's correlation coefficient)
+    sim_mean = torch.mean(simulations, dim=0)
+    obs_mean = torch.mean(evaluation)
+
+    r_num = torch.sum((simulations - sim_mean) * (evaluation - obs_mean), dim=0)
+    r_den = torch.sqrt(torch.sum((simulations - sim_mean) ** 2, dim=0) *
+                       torch.sum((evaluation - obs_mean) ** 2))
+    r = r_num / r_den
+
+    # calculate error in spread of flow alpha
+    alpha = torch.std(simulations, dim=0) / torch.std(evaluation)
+    
+    # calculate error in volume beta (bias of mean discharge)
+    beta = torch.sum(simulations, dim=0) / torch.sum(evaluation)
+    
+    # calculate the Kling-Gupta Efficiency KGE
+    kge_ = 1 - torch.sqrt((r - 1) ** 2 + (alpha - 1) ** 2 + (beta - 1) ** 2)
+
+    return torch.stack((kge_, r, alpha, beta))
+

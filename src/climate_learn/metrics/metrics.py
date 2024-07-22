@@ -441,7 +441,10 @@ class KGE(Metric):
             bias, and the preceding elements are the channel-wise mean bias.
         :rtype: torch.FloatTensor|torch.DoubleTensor
         """
-        return kge(pred, target, self.aggregate_only)@register("perceptual")
+        return kge(pred, target, self.aggregate_only)
+    
+    
+@register("perceptual")
 class VGGLoss(Metric):
     """
     Computes perceptual loss with VGG16. MSE is chosen for feature and gram components - as in literature

@@ -34,8 +34,8 @@ in_vars = out_vars = [
 
 dm = IterDataModule(
     task="downscaling",
-    inp_root_dir=args.low_res_dir,
-    out_root_dir=args.high_res_dir,
+    inp_root_dir=args.era5_low_res_dir,
+    out_root_dir=args.era5_high_res_dir,
     in_vars=in_vars,
     out_vars=out_vars,
     subsample=1,
@@ -58,10 +58,10 @@ callbacks = [
 ]
 # Evaluate baselines (no training needed)
 trainer = pl.Trainer(
-    accelerator="cpu",
+    accelerator="gpu",
+    devices=1,
     callbacks=callbacks,
 )
-
 
 # Perform validation and testing for each model
 for model, model_name in zip(
