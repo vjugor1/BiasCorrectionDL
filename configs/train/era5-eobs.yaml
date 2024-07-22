@@ -1,0 +1,40 @@
+base_dir: "/app/data/experiments/old/downscaling-ERA-EOBS"
+
+data:
+  era5_low_res_dir: "/app/data/processed/era5-eobs/era5_0.25_D"
+  eobs_high_res_dir: "/app/data/processed/era5-eobs/e-obs/ensemble_mean/0125_grid"
+  subsample: 1
+  batch_size: 16
+  buffer_size: 2000
+  num_workers: 4
+  # Available variables: 
+  # "2m_temperature", "land_sea_mask", "orography", "lat", "maximum_temperature", "minimum_temperature", "rainfall"
+  in_variables: ["2m_temperature", "land_sea_mask", "orography", "lat", "maximum_temperature", "minimum_temperature", "rainfall"]
+  # Output variables to predict. Options are: "tg", "tx", "tn", "rr"
+  out_variables: ["tg", "tx", "tn", "rr"]
+
+model:
+  # Model architecture options: "resnet", "unet", "vit", "samvit", "ynet", "deepsd", "diffusion", "dcgan", "edrn"
+  architecture: "resnet"
+  # Upsampling method options: "bilinear", "bicubic", "unet_upsampling", "unet_upsampling_bilinear", "none"
+  # NOTE: Some models (ynet, deepsd, diffusion, dcgan, edrn) do not support input upsampling, so they need this parameter set "none"
+  upsampling: "bilinear"
+
+training:
+  summary_depth: 1
+  max_epochs: 200
+  patience: 5
+  learning_rate: 3e-4
+  weight_decay: 1e-5
+  betas: [0.9, 0.99]
+  warmup_epochs: 5
+  train_loss: ["mse"] #["mae", "bce"]
+  # GPU devices to use (e.g., [0] for single GPU, [0, 1] for multiple GPUs)
+  gpus: [1,3]
+  checkpoint: null
+  # Early stopping configuration
+  early_stopping: "val/mse:aggregate"
+  min_delta: 1e-4
+  precision: "bf16-mixed"
+  # Seed for reproducibility
+  seed: 777
