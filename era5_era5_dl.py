@@ -70,7 +70,7 @@ def setup_data_module(config):
         else:
             in_vars.append(var)
     out_vars = config.data.out_variables
-    if config.model.architecture in ["diffusion", "gan"]:
+    if config.model.architecture in ["diffusion", "dcgan", "esrgan", "gan"]:
         for var in out_vars:
             in_vars.remove(var)
         in_vars = out_vars + in_vars
