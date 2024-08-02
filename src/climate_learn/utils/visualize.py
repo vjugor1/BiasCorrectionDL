@@ -7,9 +7,10 @@ from ..data.processing.era5_constants import VAR_TO_UNIT as ERA5_VAR_TO_UNIT
 from ..data.processing.cmip6_constants import VAR_TO_UNIT as CMIP6_VAR_TO_UNIT
 
 
-def visualize_at_index(mm, dm, in_transform, out_transform, variable, src, index=0):
+def visualize_at_index(mm, dm, in_transform, out_transform, variable, src, png_name, extent, index=0):
     lat, lon = dm.get_lat_lon()
-    extent = [lon.min(), lon.max(), lat.min(), lat.max()]
+    if extent==None:
+        extent = [lon.min(), lon.max(), lat.min(), lat.max()]
     channel = dm.hparams.out_vars.index(variable)
     history = dm.hparams.history
     if src == "era5":
@@ -72,36 +73,55 @@ def visualize_at_index(mm, dm, in_transform, out_transform, variable, src, index
             img = in_transform(xx[0])[channel].detach().cpu().numpy()
         if src == "era5" or src == 'cmip6':
             img = np.flip(img, 0)
+        x1, x2, y1, y2 = imshow_clip(img, extent)
+        img = img[y1:y2, x1:x2]
         visualize_sample(img, extent, f"Input: {variable_with_units}")
         anim = None
         plt.show()
+        plt.savefig(f"{("/").join(png_name.split("/")[:-1])}/input_{variable}_{index}.png")
 
     # Plot the ground truth
     yy = out_transform(y[adj_index])
     yy = yy[channel].detach().cpu().numpy()
     if src == "era5" or src == 'cmip6':
         yy = np.flip(yy, 0)
+    x1, x2, y1, y2 = imshow_clip(yy, extent)
+    yy = yy[y1:y2, x1:x2]
     visualize_sample(yy, extent, f"Ground truth: {variable_with_units}")
     plt.show()
+    plt.savefig(f"{("/").join(png_name.split("/")[:-1])}/ground_truth_{variable}_{index}.png")
 
     # Plot the prediction
     ppred = out_transform(pred[adj_index])
     ppred = ppred[channel].detach().cpu().numpy()
     if src == "era5" or src == 'cmip6':
         ppred = np.flip(ppred, 0)
+    x1, x2, y1, y2 = imshow_clip(ppred, extent)
+    ppred = ppred[y1:y2, x1:x2]
     visualize_sample(ppred, extent, f"Prediction: {variable_with_units}")
     plt.show()
+    plt.savefig(f"{png_name}_{variable}_{index}_pred.png")
 
     # Plot the bias
     bias = ppred - yy
     visualize_sample(bias, extent, f"Bias: {variable_with_units}")
     plt.show()
+    plt.savefig(f"{png_name}_{variable}_{index}_bias.png")
 
     # None, if no history
     if history > 1:
         return anim
     else:
         return ppred, yy, img
+
+def imshow_clip(img, extent):
+    x_cell=360/img.shape[1]
+    y_cell=180/img.shape[0]
+    x1=round(extent[0]/x_cell)
+    x2=round(extent[1]/x_cell)
+    y1=round((90-extent[3])/y_cell)
+    y2=round((90-extent[2])/y_cell)
+    return x1, x2, y1, y2
 
 
 def visualize_sample(img, extent, title):

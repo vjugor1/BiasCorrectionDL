@@ -1,0 +1,59 @@
+task: era-era
+path: "/app/data/experiments/downscaling-ERA-ERA"
+path_to_elevation: "/app/data/elevation.nc"
+
+# Available areas: 
+# "world", "Oman", "SEAsia", "S_USA", "Australia"
+area: "SEAsia"
+
+time_stamp: 1
+models: ["resnet", "unet", "ynet", "vit", "edrn", "deepsd", "diffusion"]
+seeds: [42, 777]
+
+metrics: [
+    'test/KGE:2m_temperature', 'test/KGE:10m_u_component_of_wind', 'test/KGE:10m_v_component_of_wind', 'test/KGE:geopotential_500', 'test/KGE:temperature_850', 'test/KGE:aggregate',
+    'test/PSNR:2m_temperature', 'test/PSNR:10m_u_component_of_wind', 'test/PSNR:10m_v_component_of_wind', 'test/PSNR:geopotential_500', 'test/PSNR:temperature_850', 'test/PSNR:aggregate',
+    'test/SSIM:2m_temperature', 'test/SSIM:10m_u_component_of_wind', 'test/SSIM:10m_v_component_of_wind', 'test/SSIM:geopotential_500', 'test/SSIM:temperature_850', 'test/SSIM:aggregate',
+    'test/rmse:2m_temperature', 'test/rmse:10m_u_component_of_wind', 'test/rmse:10m_v_component_of_wind', 'test/rmse:geopotential_500', 'test/rmse:temperature_850', 'test/rmse:aggregate',
+    'test/pearson:2m_temperature', 'test/pearson:10m_u_component_of_wind', 'test/pearson:10m_v_component_of_wind', 'test/pearson:geopotential_500', 'test/pearson:temperature_850', 'test/pearson:aggregate',
+    'test/mean_bias:2m_temperature', 'test/mean_bias:10m_u_component_of_wind', 'test/mean_bias:10m_v_component_of_wind', 'test/mean_bias:geopotential_500', 'test/mean_bias:temperature_850', 'test/mean_bias:aggregate'
+    ]
+
+areas: {"Oman": {left: 25, right: 60, bottom: 0, top: 25},
+      "SEAsia": {left: 80, right: 170, bottom: -25, top: 20},
+      "S_USA": {left: 250, right: 310, bottom: 0, top: 25},
+      "Australia": {left: 110, right: 180, bottom: -50, top: -10}}
+
+plot_variables: ["2m_temperature"]
+
+unet:
+  - upsampling: "bilinear"
+  - versions: [0,0,0]
+
+resnet:
+  - upsampling: "bilinear"
+  - versions: [1,0,0]
+
+ynet:
+  - upsampling: "none"
+  - versions: [0,0,0]
+
+vit:
+  - upsampling: "bilinear"
+  - versions: [0,0,0]
+
+deepsd:
+  - upsampling: "none"
+  - versions: [0,0,0]
+
+edrn:
+  - upsampling: "none"
+  - versions: [0,0,0]
+
+diffusion:
+  - upsampling: "none"
+  - versions: [0,0,0]
+
+dcgan:
+  - upsampling: "none"
+  - versions: [0,0,0]
