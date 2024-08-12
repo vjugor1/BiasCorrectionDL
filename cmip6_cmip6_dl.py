@@ -108,7 +108,6 @@ def setup_model(dm, config):
         },
         train_loss=tuple(config.training.train_loss) if len(config.training.train_loss) > 1 else str(config.training.train_loss[0]),
         train_loss_kwargs=config.training.perceptual_hp,
-        train_loss_kwargs=config.training.perceptual_hp,
     )
     return model
 

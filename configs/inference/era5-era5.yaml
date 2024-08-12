@@ -1,13 +1,13 @@
-task: era-era
+task: era5-era5
 path: "/app/data/experiments/downscaling-ERA-ERA"
 path_to_elevation: "/app/data/elevation.nc"
 
 # Available areas: 
 # "world", "Oman", "SEAsia", "S_USA", "Australia"
-area: "SEAsia"
+area: "Australia"
 
 time_stamp: 1
-models: ["resnet", "unet", "ynet", "vit", "edrn", "deepsd", "diffusion"]
+models: ["unet", "ynet", "vit", "edrn", "deepsd", "diffusion", "resnet"] # "esrgan", "dcgan"
 seeds: [42, 777]
 
 metrics: [
@@ -24,7 +24,8 @@ areas: {"Oman": {left: 25, right: 60, bottom: 0, top: 25},
       "S_USA": {left: 250, right: 310, bottom: 0, top: 25},
       "Australia": {left: 110, right: 180, bottom: -50, top: -10}}
 
-plot_variables: ["2m_temperature"]
+# Available variables: "2m_temperature", "10m_u_component_of_wind", "10m_v_component_of_wind", "geopotential_500", "temperature_850" 
+plot_variables: ["2m_temperature", "10m_u_component_of_wind", "10m_v_component_of_wind", "geopotential_500", "temperature_850"]
 
 unet:
   - upsampling: "bilinear"
@@ -55,5 +56,9 @@ diffusion:
   - versions: [0,0,0]
 
 dcgan:
+  - upsampling: "none"
+  - versions: [0,0,0]
+
+esrgan:
   - upsampling: "none"
   - versions: [0,0,0]

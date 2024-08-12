@@ -1,0 +1,64 @@
+task: cmip6-cmip6
+path: "/app/data/experiments/downscaling-CMIP-CMIP"
+path_to_elevation: "/app/data/elevation.nc"
+
+# Available areas: 
+# "world", "Oman", "SEAsia", "S_USA", "Australia"
+area: "S_USA"
+
+time_stamp: 1
+models: ["unet", "ynet", "vit", "edrn", "deepsd", "diffusion", "resnet"] 
+seeds: [42, 123, 777]
+
+metrics: [
+    'test/KGE:air_temperature', 'test/KGE:u_component_of_wind', 'test/KGE:v_component_of_wind', 'test/KGE:precipitation',
+    'test/PSNR:air_temperature', 'test/PSNR:u_component_of_wind', 'test/PSNR:v_component_of_wind', 'test/PSNR:precipitation',
+    'test/SSIM:air_temperature', 'test/SSIM:u_component_of_wind', 'test/SSIM:v_component_of_wind', 'test/SSIM:precipitation',
+    'test/rmse:air_temperature', 'test/rmse:u_component_of_wind', 'test/rmse:v_component_of_wind', 'test/rmse:precipitation',
+    'test/pearson:air_temperature', 'test/pearson:u_component_of_wind', 'test/pearson:v_component_of_wind', 'test/pearson:precipitation',
+    'test/mean_bias:air_temperature', 'test/mean_bias:u_component_of_wind', 'test/mean_bias:v_component_of_wind', 'test/mean_bias:precipitation'
+    ]
+
+areas: {"Oman": {left: 25, right: 60, bottom: 0, top: 25},
+      "SEAsia": {left: 80, right: 170, bottom: -25, top: 20},
+      "S_USA": {left: 250, right: 310, bottom: 0, top: 25},
+      "Australia": {left: 110, right: 180, bottom: -50, top: -10}}
+
+# Available optionones are "air_temperature", "u_component_of_wind", "v_component_of_wind", "precipitation"]
+plot_variables: ["air_temperature"]
+
+unet:
+  - upsampling: "bilinear"
+  - versions: [0,0,0]
+
+resnet:
+  - upsampling: "bilinear"
+  - versions: [1,0,0]
+
+ynet:
+  - upsampling: "none"
+  - versions: [0,0,0]
+
+vit:
+  - upsampling: "bilinear"
+  - versions: [0,0,0]
+
+deepsd:
+  - upsampling: "none"
+  - versions: [0,0,0]
+
+edrn:
+  - upsampling: "none"
+  - versions: [0,0,0]
+
+diffusion:
+  - upsampling: "none"
+  - versions: [0,0,0]
+
+dcgan:
+  - upsampling: "none"
+  - versions: [0,0,0]
+
+esrgan:
+  - upsampling: "none"
+  - versions: [0,0,0]

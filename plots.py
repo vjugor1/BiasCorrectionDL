@@ -1,28 +1,27 @@
 from src.climate_learn import LitModule
-from src.climate_learn import IterDataModule
 from src.climate_learn.utils import visualize_at_index, visualize_mean_bias
 from src.climate_learn.utils.gis import prepare_ynet_climatology, prepare_deepsd_elevation, prepare_dcgan_elevation
-from src.climate_learn import load_downscaling_module
 from src.climate_learn.models.module import DiffusionLitModule, LitModule, DeepSDLitModule, YnetLitModule
+
 import pytorch_lightning as pl
-from pytorch_lightning.callbacks import (
-    EarlyStopping,
-    ModelCheckpoint,
-    RichModelSummary,
-    RichProgressBar,
-)
-from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 import torch
 import glob
-from era5_era5_dl import *
+
 from hydra import compose, initialize
 from torchvision import transforms
-from matplotlib import pyplot as plt
 
 with initialize(version_base=None, config_path="configs/train"):
-    cfg_train = compose(config_name="era5-era5")
+    cfg_train = compose(config_name="cmip6-cmip6")
 with initialize(version_base=None, config_path="configs/inference"):
-    cfg_inference = compose(config_name="era5_era5")
+    cfg_inference = compose(config_name="cmip6-cmip6")
+
+if cfg_inference.task=="era5-era5":
+    from era5_era5_dl import *
+    src="era5"
+elif cfg_inference.task=="cmip6-cmip6":
+    from cmip6_cmip6_dl import *
+    src="cmip6"
+
 
 def make_plots():
     path_to_elevation = cfg_inference.path_to_elevation
@@ -45,11 +44,11 @@ def make_plots():
     for arch in models:
         experiment_name = f"{arch}_multi_{cfg_inference[arch][0].upsampling}_{cfg_train.training.seed}"
         default_root_dir  = os.path.join(cfg_inference.path, experiment_name)
-        png_path = os.path.join(path_plots, arch)
+        png_path = os.path.join(path_plots, f"{arch}_{cfg_train.training.seed}")
         
         cfg_train.model.architecture = arch
         cfg_train.model.upsampling = cfg_inference[arch][0].upsampling
-        print(cfg_train)
+ 
         module = setup_model(dm, cfg_train)
         trainer = setup_trainer(cfg_train, default_root_dir )
 
@@ -132,14 +131,15 @@ def make_plots():
             )
 
         denorm = module.test_target_transforms[0]
-        for variable in cfg_inference.plot_variables:
+        for var in cfg_inference.plot_variables:
             in_graphic = visualize_at_index(
                 module.to(device="cuda:1"),
                 dm,
-                in_transform=transforms.Normalize(torch.zeros(49), torch.ones(49)),
+                in_transform=transforms.Normalize(torch.zeros(dm.get_data_dims()[0][1]),
+                                                  torch.ones(dm.get_data_dims()[0][1])),
                 out_transform=denorm,
-                variable="2m_temperature",
-                src="era5",
+                variable=var,
+                src=src,
                 png_name=png_path,
                 extent=extent,
                 index=cfg_inference.time_stamp
