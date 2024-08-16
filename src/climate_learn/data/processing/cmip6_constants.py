@@ -42,6 +42,7 @@ PRESSURE_LEVEL_VARS = [
 
 VAR_TO_UNIT = {
     "air_temperature": "K",
+    "precipitation": "mm",
     "geopotential": "m^2/s^2",
     "u_component_of_wind": "m/s",
     "v_component_of_wind": "m/s",
