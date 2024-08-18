@@ -18,6 +18,7 @@ from src.climate_learn import (IterDataModule, LitModule,
 from src.climate_learn.data.processing.era5_constants import (
     DEFAULT_PRESSURE_LEVELS, PRESSURE_LEVEL_VARS)
 from src.climate_learn.transforms import Mask, Denormalize
+
 torch.set_float32_matmul_precision("medium")
 
 @hydra.main(config_path="/app/configs/train", config_name="era5-eobs")
@@ -118,11 +119,7 @@ def setup_model(dm, config):
             "max_epochs": config.training.max_epochs,
         },
         train_loss=tuple(config.training.train_loss) if len(config.training.train_loss) > 1 else str(config.training.train_loss[0]),
-        val_loss=["rmse", "pearson", "mean_bias", "mse"],
-        test_loss=["rmse", "pearson", "mean_bias"],
         train_target_transform=dm.mask,
-        val_target_transform=[dm.denorm_mask, dm.denorm_mask, dm.denorm_mask, dm.mask],
-        test_target_transform=[dm.denorm_mask, dm.denorm_mask, dm.denorm_mask],
     )
     return model
 
@@ -148,6 +145,7 @@ def setup_trainer(config, default_root_dir):
         LearningRateMonitor(logging_interval="epoch"),
     ]
     trainer = pl.Trainer(
+        # accumulate_grad_batches=2,
         enable_progress_bar=True,
         logger=logger,
         callbacks=callbacks,

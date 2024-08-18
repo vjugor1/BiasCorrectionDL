@@ -133,10 +133,11 @@ def setup_trainer(config, default_root_dir):
         LearningRateMonitor(logging_interval="epoch"),
     ]
     trainer = pl.Trainer(
+        # accumulate_grad_batches=4,
         enable_progress_bar=True,
         logger=logger,
         callbacks=callbacks,
-        default_root_dir=default_root_dir ,
+        default_root_dir=default_root_dir,
         accelerator="gpu",
         devices=config.training.gpus,
         max_epochs=config.training.max_epochs,
