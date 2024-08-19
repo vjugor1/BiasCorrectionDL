@@ -509,6 +509,8 @@ class ESRGANLitModule(LitModule):
     # Training loop for both generator and discriminator
     def training_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> None:
         lr_image, hr_image, _, _ = batch
+        if self.train_target_transform:
+            hr_image = self.train_target_transform(hr_image)
         optimizerG, optimizerD = self.optimizers()
         
         # train generator
