@@ -23,7 +23,8 @@ from ..models.hub import (
     DeepSD,
     DCGAN,
     EDRN,
-    ESRGAN
+    ESRGAN,
+    HAT
     
 )
 from ..models.lr_scheduler import LinearWarmupCosineAnnealingLR
@@ -305,7 +306,6 @@ def load_model_module(
             train_transform,
             val_transforms,
             test_transforms,
-
         )
     else:
         model_module = LitModule(
@@ -504,6 +504,12 @@ def load_architecture(task, data_module, architecture, upsampling,
                 )
             elif architecture == "esrgan":
                 backbone = ESRGAN(
+                    in_channels,
+                    out_channels,
+                    scale=out_width // in_width,
+                )
+            elif architecture == "hat":
+                backbone = HAT(
                     in_channels,
                     out_channels,
                     scale=out_width // in_width,

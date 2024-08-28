@@ -14,3 +14,4 @@ from .deepsd import DeepSD
 from .gan import DCGAN
 from .edrn import EDRN
 from .esr_gan import ESRGAN
+from .hat import HAT
