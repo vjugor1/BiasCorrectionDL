@@ -30,7 +30,7 @@ def main(cfg: DictConfig):
     # Set the seed for reproducibility
     pl.seed_everything(cfg.training.seed)
 
-    dm = setup_data_module(cfg)
+    dm = setup_data_module(cfg) 
     
     # Set up masking
     dm.mask = Mask(dm.out_mask)
@@ -120,6 +120,8 @@ def setup_model(dm, config):
         },
         train_loss=tuple(config.training.train_loss) if len(config.training.train_loss) > 1 else str(config.training.train_loss[0]),
         train_target_transform=dm.mask,
+        val_target_transform=[dm.denorm_mask, dm.denorm_mask, dm.denorm_mask, dm.mask, dm.denorm_mask, dm.denorm_mask, dm.denorm_mask],
+        test_target_transform=[dm.denorm_mask, dm.denorm_mask, dm.denorm_mask, dm.denorm_mask, dm.denorm_mask, dm.denorm_mask]
     )
     return model
 
