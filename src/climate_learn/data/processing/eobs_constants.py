@@ -34,6 +34,10 @@ VAR_TO_UNIT = {
     "sea_level_pressure_avg": "hPa",
     "relative_humidity_avg": "%",
     "global_radiation_mean": "W/m2",
+    "tg": "C",
+    "tn": "C",
+    "tx": "C",
+    "rr": "mm"
 }
 
 

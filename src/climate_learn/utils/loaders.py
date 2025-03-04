@@ -348,12 +348,12 @@ load_downscaling_module  = partial(
     load_model_module,
     task="downscaling",
     upsampling="bilinear",
-    train_loss="mse",
+    train_loss="mse", 
     val_loss=["rmse", "pearson", "mean_bias", "mse", "PSNR", "SSIM", "KGE"],
     test_loss=["rmse", "pearson", "mean_bias", "PSNR", "SSIM", "KGE"],
     train_target_transform=None,
-    val_target_transform=["denormalize", "denormalize", "denormalize", None, None, None, None],
-    test_target_transform=["denormalize", "denormalize", "denormalize", None, None, None],
+    val_target_transform=["denormalize", "denormalize", "denormalize", None, "denormalize", "denormalize", None],
+    test_target_transform=["denormalize", "denormalize", "denormalize", "denormalize", "denormalize", None],
 )
 
 
@@ -670,6 +670,7 @@ def get_climatology(data_module, split):
     if isinstance(clim, dict):
         clim = torch.stack(tuple(clim.values()))
     return clim
+
 
 def cosine_decay(epoch, warmup_epochs=100, max_epochs=10000):
     if epoch <= warmup_epochs:

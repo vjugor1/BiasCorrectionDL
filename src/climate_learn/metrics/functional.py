@@ -73,6 +73,7 @@ def rmse(
         eps = 1e-9
         masked_lat_weights = torch.mean(mask, dim=(1, 2, 3), keepdim=True) + eps
         error = error / masked_lat_weights
+    # per_channel_losses = error.sqrt().mean([0, 2, 3])
     per_channel_losses = error.mean([2, 3]).sqrt().mean(0)
     loss = per_channel_losses.mean()
     if aggregate_only:
@@ -266,25 +267,27 @@ def nrmseg(
     return torch.cat((per_channel_losses, loss.unsqueeze(0)))
 
 
-def pnsr(
+def psnr(
     pred: Union[torch.FloatTensor, torch.DoubleTensor],
     target: Union[torch.FloatTensor, torch.DoubleTensor],
     aggregate_only: bool = False,
     lat_weights: Optional[Union[torch.FloatTensor, torch.DoubleTensor]] = None,
 ) -> Union[torch.FloatTensor, torch.DoubleTensor]:
 
-    mse_value = mse(pred, target, False, lat_weights)[:pred.shape[1]] # C
-    # per_channel_max_value = 1.0
+    rmse_value = rmse(pred, target, False)[:pred.shape[1]] # C
     per_channel_losses = []
+    per_channel_max_value = torch.amax(target, dim=(0,2,3)) - torch.amin(target, dim=(0,2,3)) # C
     for i in range(pred.shape[1]):
-        pnsr_value = 20 * torch.log10(1.0 / torch.sqrt(torch.Tensor([mse_value[i]])))
-        per_channel_losses.append(pnsr_value)
+        psnr_value = 20 * torch.log10(per_channel_max_value[i] / rmse_value[i])
+        per_channel_losses.append(psnr_value)
     per_channel_losses = torch.tensor(per_channel_losses).squeeze()
     loss = per_channel_losses.mean()
     if aggregate_only:
         return loss
     return torch.cat((per_channel_losses, loss.unsqueeze(0)))
 
+def norm(t, max, min, i):
+    return (t[:,i, :, :]-min[i])/(max[i]-min[i])
 
 def ssim(
     pred: Union[torch.FloatTensor, torch.DoubleTensor],
@@ -296,10 +299,24 @@ def ssim(
         pred = pred * lat_weights
         target = target * lat_weights
         
-    per_channel_losses = ssim_func(torch.swapaxes(pred, 0, 1),
-                                   torch.swapaxes(target, 0, 1),
-                                   data_range=1.0,
-                                   size_average=False)
+    pred = pred.double()
+    target = target.double()
+    
+    per_channel_losses = []
+    target_min = torch.amin(torch.cat([pred,target], dim=0), dim=(0,2,3)) #C
+    target_max = torch.amax(torch.cat([pred,target], dim=0), dim=(0,2,3)) #C 
+    
+    for i in range(pred.shape[1]):
+        ssim_value = ssim_func(torch.unsqueeze(norm(pred, target_max, target_min, i), 1),
+                            torch.unsqueeze(norm(target, target_max, target_min, i),1),
+                            data_range=1,
+                            size_average=True)
+        # ssim_value = ssim_func(torch.swapaxes(pred, 0, 1),
+        #                         torch.swapaxes(target, 0, 1),
+        #                         data_range=data_range[i],
+        #                         size_average=False)
+        per_channel_losses.append(ssim_value)
+    per_channel_losses = torch.tensor(per_channel_losses).squeeze()
     loss = per_channel_losses.mean()
     if aggregate_only:
         return loss

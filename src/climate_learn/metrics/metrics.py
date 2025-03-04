@@ -334,6 +334,40 @@ class Pearson(Metric):
         return pearson(pred, target, self.aggregate_only)
 
 
+@register("lat_pearson")
+class LatWeightedPearson(LatitudeWeightedMetric):
+    """
+    Computes latitude-weighted Pearson correlation coefficient, based on
+    https://discuss.pytorch.org/t/use-pearson-correlation-coefficient-as-cost-function/8739/10
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(args, kwargs)
+
+    def __call__(
+        self,
+        pred: Union[torch.FloatTensor, torch.DoubleTensor],
+        target: Union[torch.FloatTensor, torch.DoubleTensor],
+    ) -> Union[torch.FloatTensor, torch.DoubleTensor]:
+        r"""
+        .. highlight:: python
+
+        :param pred: The predicted values of shape [B,C,H,W]. These should be
+            denormalized.
+        :type pred: torch.FloatTensor|torch.DoubleTensor
+        :param target: The ground truth target values of shape [B,C,H,W]. These
+            should be denormalized.
+        :type target: torch.FloatTensor|torch.DoubleTensor
+
+        :return: A singleton tensor if `self.aggregate_only` is `True`. Else, a
+            tensor of shape [C+1], where the last element is the aggregate
+            Pearson correlation coefficient, and the preceding elements are the
+            channel-wise Pearson correlation coefficients.
+        :rtype: torch.FloatTensor|torch.DoubleTensor
+        """
+        super().cast_to_device(pred)
+        return pearson(pred, target, self.aggregate_only, self.lat_weights)
+    
 @register("mean_bias")
 class MeanBias(Metric):
     """Computes the standard mean bias."""
@@ -385,7 +419,7 @@ class PSNR(Metric):
             bias, and the preceding elements are the channel-wise mean bias.
         :rtype: torch.FloatTensor|torch.DoubleTensor
         """
-        return pnsr(pred, target, self.aggregate_only)
+        return psnr(pred, target, self.aggregate_only)
     
     
     

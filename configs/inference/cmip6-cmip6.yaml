@@ -7,7 +7,7 @@ path_to_elevation: "/app/data/elevation.nc"
 area: "S_USA"
 
 time_stamp: 1
-models: ["unet", "ynet", "vit", "deepsd", "diffusion", "dcgan", "resnet", "edrn" , "esrgan"]
+models: ["resnet", "unet", "deepsd", "ynet", "edrn" ,  "esrgan", "vit",  "hat", "diffusion"] 
 seeds: [42, 123, 777]
 
 metrics: [
@@ -25,11 +25,11 @@ areas: {"Oman": {left: 25, right: 60, bottom: 0, top: 25},
       "Australia": {left: 110, right: 180, bottom: -50, top: -10}}
 
 # Available optionones are "air_temperature", "u_component_of_wind", "v_component_of_wind", "precipitation"]
-plot_variables: ["precipitation"]
+plot_variables: ["air_temperature", "u_component_of_wind", "precipitation"]
 
 unet:
   - upsampling: "bilinear"
-  - versions: [0,0,0]
+  - versions: [2,1,1]
 
 resnet:
   - upsampling: "bilinear"
@@ -37,11 +37,11 @@ resnet:
 
 ynet:
   - upsampling: "none"
-  - versions: [0,0,0]
+  - versions: [1,0,0]
 
 vit:
   - upsampling: "bilinear"
-  - versions: [0,0,0]
+  - versions: [2,0,0]
 
 deepsd:
   - upsampling: "none"
@@ -57,8 +57,12 @@ diffusion:
 
 dcgan:
   - upsampling: "none"
-  - versions: [0,0,1]
+  - versions: [0,1,2]
 
 esrgan:
   - upsampling: "none"
-  - versions: [3,1,5]
+  - versions: [7,1,6]
+
+hat:
+  - upsampling: "none"
+  - versions: [0,0,0]

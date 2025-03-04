@@ -12,7 +12,10 @@ from pytorch_lightning.callbacks import (EarlyStopping, LearningRateMonitor,
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 
 from src.climate_learn import (IterDataModule, LitModule,
+                               DiffusionLitModule, DeepSDLitModule,
+                               YnetLitModule, GANLitModule, ESRGANLitModule,
                                load_downscaling_module)
+from src.climate_learn.utils.gis import prepare_ynet_climatology, prepare_deepsd_elevation, prepare_dcgan_elevation
 from src.climate_learn.data.processing.era5_constants import (
     DEFAULT_PRESSURE_LEVELS, PRESSURE_LEVEL_VARS)
 
@@ -30,6 +33,10 @@ def main(cfg: DictConfig):
     dm = setup_data_module(cfg)
     model = setup_model(dm, cfg)
     trainer = setup_trainer(cfg, default_root_dir)
+    
+    path_to_elevation = "/app/data/elevation.nc"
+    out_vars = cfg.data.out_variables
+    
     try:
         model.train_loss.vgg = model.train_loss.vgg.to(cfg.training.gpus[0])
     except AttributeError:
@@ -49,18 +56,86 @@ def main(cfg: DictConfig):
     if cfg.training.checkpoint is None:
         trainer.fit(model, datamodule=dm)
         trainer.test(model, datamodule=dm, ckpt_path="best")
+        
     # Evaluate saved model checkpoint
     else:
-        model = LitModule.load_from_checkpoint(
-            cfg.training.checkpoint,
-            net=model.net,
-            optimizer=model.optimizer,
-            lr_scheduler=None,
-            train_loss=None,
-            val_loss=None,
-            test_loss=model.test_loss,
-            test_target_transforms=model.test_target_transforms,
-        )
+        if cfg.model.architecture == 'diffusion':
+            model_module = DiffusionLitModule.load_from_checkpoint(
+                cfg.training.checkpoint,
+                net=model.net,
+                optimizer=model.optimizer,
+                lr_scheduler=None,
+                train_loss=None,
+                val_loss=None,
+                test_loss=model.test_loss,
+                test_target_transforms=model.test_target_transforms,
+            )
+        elif cfg.model.architecture == "ynet":
+            normalized_clim = prepare_ynet_climatology(dm, path_to_elevation, out_vars)
+            
+            model_module = YnetLitModule.load_from_checkpoint(
+                cfg.training.checkpoint,
+                net=model.net,
+                optimizer=model.optimizer,
+                lr_scheduler=None,
+                train_loss=None,
+                val_loss=None,
+                test_loss=model.test_loss,
+                test_target_transforms=model.test_target_transforms,
+                x_aux = normalized_clim,
+            )
+        elif cfg.model.architecture == "deepsd":
+            elevation_list = prepare_deepsd_elevation(dm, path_to_elevation)
+            
+            model_module = DeepSDLitModule.load_from_checkpoint(
+                cfg.training.checkpoint,
+                net=model.net,
+                optimizer=model.optimizer,
+                lr_scheduler=None,
+                train_loss=None,
+                val_loss=None,
+                test_loss=model.test_loss,
+                test_target_transforms=model.test_target_transforms,
+                elevation = elevation_list,
+            )
+            
+        elif cfg.model.architecture == "dcgan":
+            elevation = prepare_dcgan_elevation(dm, path_to_elevation)
+            model_module = GANLitModule.load_from_checkpoint(
+                cfg.training.checkpoint,
+                net=model.net,
+                optimizer=model.optimizer,
+                lr_scheduler=None,
+                train_loss=None,
+                val_loss=None,
+                test_loss=model.test_loss,
+                test_target_transforms=model.test_target_transforms,
+                elevation = elevation
+
+            )
+        elif cfg.model.architecture == "esrgan":
+            model_module = ESRGANLitModule.load_from_checkpoint(
+                cfg.training.checkpoint,
+                net=model.net,
+                optimizer=model.optimizer,
+                lr_scheduler=None,
+                train_loss=None,
+                val_loss=None,
+                test_loss=model.test_loss,
+                test_target_transforms=model.test_target_transforms,
+            )
+        else:
+            model = LitModule.load_from_checkpoint(
+                cfg.training.checkpoint,
+                net=model.net,
+                optimizer=model.optimizer,
+                lr_scheduler=None,
+                train_loss=None,
+                val_loss=None,
+                test_loss=model.test_loss,
+                test_target_transforms=model.test_target_transforms,
+            )
+
         trainer.test(model, datamodule=dm)
 
 def construct_experiment_name(config):

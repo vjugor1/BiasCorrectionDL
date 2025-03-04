@@ -60,10 +60,8 @@ VAR_TO_UNIT = {
     "total_cloud_cover": None,  # dimensionless
     "land_sea_mask": None,  # dimensionless
     "orography": None,  # dimensionless
-    "geopotential": "m^2/s^2",
-    "u_component_of_wind": "m/s",
-    "v_component_of_wind": "m/s",
-    "temperature": "K",
+    "geopotential_500": "m^2/s^2",
+    "temperature_850": "K",
     "relative_humidity": "%",
     "specific_humidity": "kg/kg",
     "voriticity": "1/s",

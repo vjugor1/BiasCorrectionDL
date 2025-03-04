@@ -1,0 +1,71 @@
+task: era5-eobs
+path: "/app/data/experiments/downscaling-ERA-EOBS"
+path_to_elevation: "/app/data/elevation.nc"
+
+# Available areas: "Europe"
+area: "Europe"
+
+time_stamp: 500
+models: ["resnet", "unet", "deepsd", "ynet", "edrn" ,  "esrgan", "vit",  "hat", "diffusion"] 
+seeds: [42, 123, 777]
+
+metrics: [
+    'test/KGE:tg', 'test/KGE:tx', 'test/KGE:tn', 'test/KGE:rr',
+    'test/PSNR:tg', 'test/PSNR:tx', 'test/PSNR:tn', 'test/PSNR:rr',
+    'test/SSIM:tg', 'test/SSIM:tx', 'test/SSIM:tn', 'test/SSIM:rr',
+    'test/rmse:tg', 'test/rmse:tx', 'test/rmse:tn', 'test/rmse:rr',
+    'test/pearson:tg', 'test/pearson:tx', 'test/pearson:tn', 'test/pearson:rr',
+    'test/mean_bias:tg', 'test/mean_bias:tx', 'test/mean_bias:tn', 'test/mean_bias:rr'
+    ]
+
+areas: {"Oman": {left: 25, right: 60, bottom: 0, top: 25},
+      "SEAsia": {left: 80, right: 170, bottom: -25, top: 20},
+      "S_USA": {left: 250, right: 310, bottom: 0, top: 25},
+      "Australia": {left: 110, right: 180, bottom: -50, top: -10},
+      "Europe": {left: -14.5, right: 39.5, bottom: 35.5, top: 70.5}}
+
+# Available options are "tg", "tn", "tm", "rr"]
+plot_variables: ["tg", "rr"]
+
+# Available zoom_plot: "prediction", "bias"
+zoom_plot: "prediction"
+
+unet:
+  - upsampling: "bilinear"
+  - versions: [0,0,0]
+
+resnet:
+  - upsampling: "bilinear"
+  - versions: [0,0,0]
+
+ynet:
+  - upsampling: "none"
+  - versions: [0,0,0]
+
+vit:
+  - upsampling: "bilinear"
+  - versions: [0,0,0]
+
+deepsd:
+  - upsampling: "none"
+  - versions: [0,0,0]
+
+edrn:
+  - upsampling: "none"
+  - versions: [0,0,0]
+
+diffusion:
+  - upsampling: "none"
+  - versions: [0,5,0]
+
+dcgan:
+  - upsampling: "none"
+  - versions: [0,1,0]
+
+esrgan:
+  - upsampling: "none"
+  - versions: [0,3,0]
+
+hat:
+  - upsampling: "none"
+  - versions: [0,0,0]

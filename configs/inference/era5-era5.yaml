@@ -4,28 +4,32 @@ path_to_elevation: "/app/data/elevation.nc"
 
 # Available areas: 
 # "world", "Oman", "SEAsia", "S_USA", "Australia"
-area: "Australia"
+area: "America"
 
-time_stamp: 1
-models: ["unet", "ynet", "vit", "edrn", "deepsd", "diffusion", "resnet"] # "esrgan", "dcgan"
-seeds: [42, 777]
+time_stamp: 150
+models: ["resnet", "unet", "deepsd", "ynet", "edrn" ,  "esrgan", "vit",  "hat", "diffusion"] 
+seeds: [42, 123, 777]
 
 metrics: [
-    'test/KGE:2m_temperature', 'test/KGE:10m_u_component_of_wind', 'test/KGE:10m_v_component_of_wind', 'test/KGE:geopotential_500', 'test/KGE:temperature_850', 'test/KGE:aggregate',
-    'test/PSNR:2m_temperature', 'test/PSNR:10m_u_component_of_wind', 'test/PSNR:10m_v_component_of_wind', 'test/PSNR:geopotential_500', 'test/PSNR:temperature_850', 'test/PSNR:aggregate',
-    'test/SSIM:2m_temperature', 'test/SSIM:10m_u_component_of_wind', 'test/SSIM:10m_v_component_of_wind', 'test/SSIM:geopotential_500', 'test/SSIM:temperature_850', 'test/SSIM:aggregate',
-    'test/rmse:2m_temperature', 'test/rmse:10m_u_component_of_wind', 'test/rmse:10m_v_component_of_wind', 'test/rmse:geopotential_500', 'test/rmse:temperature_850', 'test/rmse:aggregate',
-    'test/pearson:2m_temperature', 'test/pearson:10m_u_component_of_wind', 'test/pearson:10m_v_component_of_wind', 'test/pearson:geopotential_500', 'test/pearson:temperature_850', 'test/pearson:aggregate',
-    'test/mean_bias:2m_temperature', 'test/mean_bias:10m_u_component_of_wind', 'test/mean_bias:10m_v_component_of_wind', 'test/mean_bias:geopotential_500', 'test/mean_bias:temperature_850', 'test/mean_bias:aggregate'
+    'test/rmse:2m_temperature', 'test/rmse:10m_u_component_of_wind', 'test/rmse:10m_v_component_of_wind', 'test/rmse:geopotential_500', 'test/rmse:temperature_850', #'test/rmse:aggregate',
+    'test/SSIM:2m_temperature', 'test/SSIM:10m_u_component_of_wind', 'test/SSIM:10m_v_component_of_wind', 'test/SSIM:geopotential_500','test/SSIM:temperature_850', #'test/SSIM:aggregate',
+    'test/PSNR:2m_temperature', 'test/PSNR:10m_u_component_of_wind', 'test/PSNR:10m_v_component_of_wind', 'test/PSNR:geopotential_500', 'test/PSNR:temperature_850', #'test/PSNR:aggregate',
+    'test/pearson:2m_temperature', 'test/pearson:10m_u_component_of_wind', 'test/pearson:10m_v_component_of_wind', 'test/pearson:geopotential_500', 'test/pearson:temperature_850', # 'test/pearson:aggregate',
+    'test/mean_bias:2m_temperature', 'test/mean_bias:10m_u_component_of_wind', 'test/mean_bias:10m_v_component_of_wind', 'test/mean_bias:geopotential_500', 'test/mean_bias:temperature_850', #'test/mean_bias:aggregate'
+    'test/KGE:2m_temperature', 'test/KGE:10m_u_component_of_wind', 'test/KGE:10m_v_component_of_wind', 'test/KGE:geopotential_500', 'test/KGE:temperature_850' #'test/KGE:aggregate',
     ]
 
 areas: {"Oman": {left: 25, right: 60, bottom: 0, top: 25},
-      "SEAsia": {left: 80, right: 170, bottom: -25, top: 20},
-      "S_USA": {left: 250, right: 310, bottom: 0, top: 25},
-      "Australia": {left: 110, right: 180, bottom: -50, top: -10}}
+    "America": {left: 250, right: 330, bottom: -60, top: 55},
+    "SEAsia": {left: 80, right: 170, bottom: -25, top: 20},
+    "S_USA": {left: 250, right: 310, bottom: 0, top: 25},
+    "Australia": {left: 110, right: 180, bottom: -50, top: -10}}
 
 # Available variables: "2m_temperature", "10m_u_component_of_wind", "10m_v_component_of_wind", "geopotential_500", "temperature_850" 
-plot_variables: ["2m_temperature", "10m_u_component_of_wind", "10m_v_component_of_wind", "geopotential_500", "temperature_850"]
+plot_variables: ["10m_u_component_of_wind"] #, "10m_u_component_of_wind", "10m_v_component_of_wind", "geopotential_500", "temperature_850"]
+
+# Available zoom_plot: "prediction", "bias"
+zoom_plot: "prediction"
 
 unet:
   - upsampling: "bilinear"
@@ -57,8 +61,12 @@ diffusion:
 
 dcgan:
   - upsampling: "none"
-  - versions: [0,0,0]
+  - versions: [1,0,19]
 
 esrgan:
   - upsampling: "none"
   - versions: [0,0,0]
+
+hat:
+  - upsampling: "none"
+  - versions: [0,1,15]

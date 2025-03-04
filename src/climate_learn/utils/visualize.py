@@ -5,9 +5,10 @@ from scipy.stats import rankdata
 from tqdm import tqdm
 from ..data.processing.era5_constants import VAR_TO_UNIT as ERA5_VAR_TO_UNIT
 from ..data.processing.cmip6_constants import VAR_TO_UNIT as CMIP6_VAR_TO_UNIT
+from ..data.processing.eobs_constants import VAR_TO_UNIT as EOBS_VAR_TO_UNIT
 
 
-def visualize_at_index(mm, dm, in_transform, out_transform, variable, src, png_name, extent, index=0, var_range = [None]*4):
+def visualize_at_index(mm, dm, in_transform, out_transform, variable, src, png_name=None, extent=None, index=0, var_range = [None]*4):
     lat, lon = dm.get_lat_lon()
     if extent==None:
         extent = [lon.min(), lon.max(), lat.min(), lat.max()]
@@ -15,10 +16,13 @@ def visualize_at_index(mm, dm, in_transform, out_transform, variable, src, png_n
     history = dm.hparams.history
     var_name = variable
     pred_min, pred_max, bias_min, bias_max = var_range
-    if src == "era5":
+    if src in ["era5", "era5-eobs"]:
         if variable not in ERA5_VAR_TO_UNIT:
-            variable = '_'.join(variable.split('_')[:-1])
-        variable_with_units = f"{variable} ({ERA5_VAR_TO_UNIT[variable]})"
+            # temporary fix for era5-eobs task
+            # TODO rename era5-eobs task out vars to be the same as era5 vars
+            variable_with_units = f"{variable} ({EOBS_VAR_TO_UNIT[variable]})"
+        else:
+            variable_with_units = f"{variable} ({ERA5_VAR_TO_UNIT[variable]})"
     elif src == "cmip6":
         variable_with_units = f"{variable} ({CMIP6_VAR_TO_UNIT[variable]})"
     elif src == "prism":
@@ -53,7 +57,7 @@ def visualize_at_index(mm, dm, in_transform, out_transform, variable, src, png_n
         imgs = []
         for time_step in range(history):
             img = in_transform(xx[time_step])[channel].detach().cpu().numpy()
-            if src == "era5":
+            if src in ["era5", "era5-eobs"]:
                 img = np.flip(img, 0)
             img = in_ax.imshow(img, cmap=plt.cm.coolwarm, animated=True, extent=extent)
             imgs.append([img])
@@ -73,60 +77,87 @@ def visualize_at_index(mm, dm, in_transform, out_transform, variable, src, png_n
             img = in_transform(xx)[channel].detach().cpu().numpy()
         else:
             img = in_transform(xx[0])[channel].detach().cpu().numpy()
-        if src == "era5" or src == 'cmip6':
+            
+        if src == "era5-eobs":
+            # Era-eobx fix: data doesn't cover all the world
+            x1, x2, y1, y2, x_cell, y_cell= imshow_clip(img, extent, world=False)
+            img = img[round(y1):round(y2), round(x1):round(x2)]
+
+        else:
             img = np.flip(img, 0)
-        x1, x2, y1, y2, x_cell, y_cell = imshow_clip(img, extent)
-        img = img[round(y1):round(y2), round(x1):round(x2)]
+            x1, x2, y1, y2, x_cell, y_cell = imshow_clip(img, extent)
+            img = img[round(y1):round(y2), round(x1):round(x2)]
+        
         extent_clip = [x1*x_cell,x2*x_cell, 90-y2*y_cell, 90-y1*y_cell]
-        visualize_sample(img, extent_clip, f"Input: {variable_with_units}")
         anim = None
-        plt.show()
-        plt.savefig(f"{("/").join(png_name.split("/")[:-1])}/input_{var_name}_{index}.png")
+        
+        if png_name:
+            visualize_sample(img, extent_clip, f"Input: {variable_with_units}")
+            plt.show()
+            plt.savefig(f"{("/").join(png_name.split("/")[:-1])}/input_{var_name}_{index}.png")
 
     # Plot the ground truth
     yy = out_transform(y[adj_index])
     yy = yy[channel].detach().cpu().numpy()
-    if src == "era5" or src == 'cmip6':
+
+    if src == "era5-eobs":
+        x1, x2, y1, y2, x_cell, y_cell= imshow_clip(yy, extent, world=False)
+        extent_clip = extent
+    else:
         yy = np.flip(yy, 0)
-    x1, x2, y1, y2, x_cell, y_cell= imshow_clip(yy, extent)
+        x1, x2, y1, y2, x_cell, y_cell= imshow_clip(yy, extent)
+        extent_clip = [x1*x_cell, x2*x_cell, 90-y2*y_cell, 90-y1*y_cell]
     yy = yy[round(y1):round(y2), round(x1):round(x2)]
-    extent_clip = [x1*x_cell,x2*x_cell, 90-y2*y_cell, 90-y1*y_cell]
-    visualize_sample(yy, extent_clip, f"Ground truth: {variable_with_units}", pred_min, pred_max)
-    plt.show()
-    if pred_min:
-        plt.savefig(f"{("/").join(png_name.split("/")[:-1])}/ground_truth_{var_name}_{index}.png")
+    
+    if png_name:
+        visualize_sample(yy, extent_clip, f"Ground truth: {variable_with_units}", pred_min, pred_max)
+        plt.show()
+        if pred_min:
+            plt.savefig(f"{("/").join(png_name.split("/")[:-1])}/ground_truth_{var_name}_{index}.png")
 
     # Plot the prediction
     ppred = out_transform(pred[adj_index])
     ppred = ppred[channel].detach().cpu().numpy()
-    if src == "era5" or src == 'cmip6':
+    if src != "era5-eobs":
         ppred = np.flip(ppred, 0)
     ppred = ppred[round(y1):round(y2), round(x1):round(x2)]
-    visualize_sample(ppred, extent_clip, f"Prediction: {variable_with_units}", pred_min, pred_max)
-    plt.show()
-    if pred_min:
-        plt.savefig(f"{png_name}_{var_name}_{index}_pred.png")
+    
+    if png_name:
+        visualize_sample(ppred, extent_clip, f"Prediction: {variable_with_units}", pred_min, pred_max)
+        plt.show()
+        if pred_min:
+            plt.savefig(f"{png_name}_{var_name}_{index}_pred.png")
 
     # Plot the bias
     bias = ppred - yy
-    visualize_sample(bias, extent_clip, f"Bias: {variable_with_units}", bias_min, bias_max)
-    plt.show()
-    if bias_min:
-        plt.savefig(f"{png_name}_{var_name}_{index}_bias.png")
-    plt.close('all')
+    if png_name:
+        visualize_sample(bias, extent_clip, f"Bias: {variable_with_units}", bias_min, bias_max)
+        plt.show()
+        if bias_min:
+            plt.savefig(f"{png_name}_{var_name}_{index}_bias.png")
+
     # None, if no history
     if history > 1:
         return anim
     else:
         return ppred, yy, img
 
-def imshow_clip(img, extent):
-    x_cell=360/img.shape[1]
-    y_cell=180/img.shape[0]
-    x1=extent[0]/x_cell
-    x2=extent[1]/x_cell
-    y1=(90-extent[3])/y_cell
-    y2=(90-extent[2])/y_cell
+def imshow_clip(img, extent, world=True):
+    if world:
+        x_cell=360/img.shape[1]
+        y_cell=180/img.shape[0]
+        x1=extent[0]/x_cell
+        x2=extent[1]/x_cell
+        y1=(90-extent[3])/y_cell
+        y2=(90-extent[2])/y_cell
+    else:
+        x1= 0
+        x2 = img.shape[1]
+        y1 = 0
+        y2 = img.shape[0]
+        x_cell = (extent[1]-extent[0])/img.shape[1]
+        y_cell = (extent[3]-extent[2])/img.shape[0]
+    
     return x1, x2, y1, y2, x_cell, y_cell
 
 
@@ -136,11 +167,11 @@ def visualize_sample(img,
                     vmin=None,
                     vmax=None):
     fig, ax = plt.subplots()
-    ax.set_title(title)
+    # ax.set_title(title)
     ax.set_xlabel("Longitude")
     ax.set_ylabel("Latitude")
     cmap = plt.cm.coolwarm
-    cmap.set_bad("black", 1)
+    cmap.set_bad("white", 1)
     im = ax.imshow(img, cmap=cmap, extent=extent, vmin=vmin, vmax=vmax)
     cax = fig.add_axes(
         [
@@ -150,7 +181,6 @@ def visualize_sample(img,
             ax.get_position().y1 - ax.get_position().y0,
         ]
     )
-    # fig.colorbar(ax.get_images()[0], cax=cax)
     fig.colorbar(im, cax=cax)
     return (fig, ax)
 
@@ -159,7 +189,7 @@ def visualize_mean_bias(dm, mm, out_transform, variable, src):
     lat, lon = dm.get_lat_lon()
     extent = [lon.min(), lon.max(), lat.min(), lat.max()]
     channel = dm.hparams.out_vars.index(variable)
-    if src == "era5":
+    if src in ["era5", "era5-eobs"]:
         if variable not in ERA5_VAR_TO_UNIT:
             variable = '_'.join(variable.split('_')[:-1])
         variable_with_units = f"{variable} ({ERA5_VAR_TO_UNIT[variable]})"
@@ -184,7 +214,7 @@ def visualize_mean_bias(dm, mm, out_transform, variable, src):
     fig, ax = plt.subplots()
     all_biases = np.concatenate(all_biases)
     mean_bias = np.mean(all_biases, axis=0)
-    if src == "era5":
+    if src in ["era5", "era5-eobs"]:
         mean_bias = np.flip(mean_bias, 0)
     ax.imshow(mean_bias, cmap=plt.cm.coolwarm, extent=extent)
     ax.set_title(f"Mean Bias: {variable_with_units}")
