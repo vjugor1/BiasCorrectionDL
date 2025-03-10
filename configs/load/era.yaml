@@ -8,8 +8,12 @@ year_end: 2014
 constants:
     - "land_sea_mask"
     - "geopotential_at_surface"
+    - "standard_deviation_of_orography"
+    - "standard_deviation_of_filtered_subgrid_orography"
+    - "angle_of_sub_gridscale_orography"
+    - "soil_type"
 
-eobs_bounds:
+bounds:
     left: -15
     right: 40
     top: 71

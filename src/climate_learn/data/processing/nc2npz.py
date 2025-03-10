@@ -16,10 +16,10 @@ import yaml
 # Get eobs bounds
 with open("/app/configs/load/era.yaml", 'r') as file:
     cfg = yaml.safe_load(file)
-TOP = cfg["eobs_bounds"]["top"]
-BOTTOM = cfg["eobs_bounds"]["bottom"]
-LEFT = cfg["eobs_bounds"]["left"]
-RIGHT = cfg["eobs_bounds"]["right"]
+TOP = cfg["bounds"]["top"]
+BOTTOM = cfg["bounds"]["bottom"]
+LEFT = cfg["bounds"]["left"]
+RIGHT = cfg["bounds"]["right"]
     
     
 # Local application
@@ -313,7 +313,7 @@ def regrid(ds_in: xr.Dataset,
         int(n_cells_lat))
 
     ds_out = xr.Dataset(
-        coords=dict(
+        coords=dict( 
             lon=(["lon"], lon_new),
             lat=(["lat"], lat_new))
     )

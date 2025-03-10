@@ -3,9 +3,9 @@ import xarray as xr
 import xesmf
 
 SCALE_FACTOR = 1
-PATH_SRC = "/app/data/raw/cmip6-era5/era5_0.25/constants.nc"
+PATH_SRC = "/app/data/raw/constants.nc"
 PATH_TARGET = "/app/data/raw/cmip6-cmip6/LR/cloud_cover/*.nc"
-PATH_SAVE= "/app/data/raw/constants.nc"
+PATH_SAVE= "/app/data/raw/cmip6-cmip6/LR/constants.nc"
 
 def regrid(path_in,
            path_out,

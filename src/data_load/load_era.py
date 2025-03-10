@@ -34,27 +34,22 @@ def run_zarr_load(cfg: DictConfig):
     
     if TASK == "era5-eobs":
         vars = [
-                "2m_temperature",
-                "minimum_temperature",
-                "maximum_temperature",
-                "rainfall",
+                # "2m_temperature",
+                # "minimum_temperature",
+                # "maximum_temperature",
+                # "rainfall",
                 "land_sea_mask",
-                "geopotential_at_surface"
+                "geopotential_at_surface",
+                "standard_deviation_of_orography",
+                "standard_deviation_of_filtered_subgrid_orography",
+                "angle_of_sub_gridscale_orography",
+                "soil_type"
         ]
         
         # Transform longitude to fit with other data
         data.coords["longitude"] = (data.coords["longitude"] + 180) % 360 - 180
         data = data.sortby(data.longitude)
-
-        # Get eobs bounds
-        top = cfg.eobs_bounds.top
-        bottom = cfg.eobs_bounds.bottom
-        left = cfg.eobs_bounds.left
-        right = cfg.eobs_bounds.right
-        
-        # Clip source data with e-obs boundaries
-        data = data.sel(latitude=slice(top,bottom), longitude=slice(left,right))
-    
+           
     elif TASK == "cmip6-era5":
             vars = [
                     "2m_temperature",
@@ -65,7 +60,17 @@ def run_zarr_load(cfg: DictConfig):
                     "land_sea_mask",
                     "geopotential_at_surface"
                 ]
-
+            
+    if cfg.bounds:
+        # Get eobs bounds
+        top = cfg.bounds.top
+        bottom = cfg.bounds.bottom
+        left = cfg.bounds.left
+        right = cfg.bounds.right
+        
+        # Clip source data with e-obs boundaries
+        data = data.sel(latitude=slice(top,bottom), longitude=slice(left,right))
+        
     logging.info("Starting download...")
     const_var = []
     

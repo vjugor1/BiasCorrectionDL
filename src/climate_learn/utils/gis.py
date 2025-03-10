@@ -212,3 +212,65 @@ def prepare_dcgan_elevation(data_module, path_to_elevation):
     new_elevation_tensor = torch.from_numpy(new_elevation_ds["topo"].values).unsqueeze(0)
     
     return new_elevation_tensor
+
+
+def prepare_elevation(path_to_elevation, target_path):
+    """Prepares elevation to concatenate with LR data"""
+    
+    if path_to_elevation is None:
+        raise TypeError("The path to elevation dataset is None.")
+    
+    if not os.path.isfile(path_to_elevation):
+        raise FileNotFoundError(f"The file at {path_to_elevation} does not exist.")
+
+    if "constant" not in target_path:
+        raise FileNotFoundError(f"The file at {target_path} must be constants.nc type")
+        
+    # Load and preprocess the high-resolution dataset
+    with xr.open_dataset(path_to_elevation) as elevation_ds:
+        elevation_ds = (
+            elevation_ds.assign_coords(X=(elevation_ds.X % 360))
+            .sortby("X")
+            .rename({"X": "lon", "Y": "lat"})
+        )
+        elevation_ds["topo"].values = (
+            np.log1p(np.nan_to_num(elevation_ds["topo"].values)) / 9
+        )
+
+    # Calculate the high-resolution transform
+    high_res_transform = _calculate_transform(elevation_ds)
+    
+    with xr.open_dataset(target_path) as ds_target:
+        lat_axis = [k for k in list(ds_target.dims) if 'lat' in k][0]
+        lon_axis = [k for k in list(ds_target.dims) if 'lon' in k][0]
+
+    if len(ds_target[lat_axis])%2!=0:
+            n_cells_lat=(len(ds_target[lat_axis])-1)
+    else:
+        n_cells_lat=len(ds_target[lat_axis])
+    n_cells_lon=len(ds_target[lon_axis])
+    lon_new = np.linspace(
+        np.min(ds_target[lon_axis].values),
+        np.max(ds_target[lon_axis].values),
+        int(n_cells_lon))
+    lat_new = np.linspace(
+        np.max(ds_target[lat_axis].values),
+        np.min(ds_target[lat_axis].values),
+        int(n_cells_lat))
+    
+    target_lat, target_lon = lat_new, lon_new
+
+    target_shape = (n_cells_lat, n_cells_lon)
+    target_transform = from_bounds(
+        target_lon.min(), target_lat.min(),
+        target_lon.max(), target_lat.max(),
+        len(target_lon), len(target_lat),
+    )
+    
+    # Reproject the data
+    reprojected_data = _reproject_elevation(elevation_ds["topo"].values, target_shape, high_res_transform, target_transform)
+    ds_target["elevation"] = (['latitude', 'longitude'],  reprojected_data)
+    ds_target.to_netcdf(os.path.join("/".join(target_path.split("/")[:-1]), "temp.nc"), mode='w')  
+    
+    ds_target = xr.open_dataset(os.path.join("/".join(target_path.split("/")[:-1]), "temp.nc"))
+    ds_target.to_netcdf(target_path, mode = 'w')
