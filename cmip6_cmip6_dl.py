@@ -2,6 +2,7 @@
 import os
 from omegaconf import DictConfig, OmegaConf
 import hydra
+import pickle
 
 import pytorch_lightning as pl
 # Third party
@@ -26,6 +27,12 @@ def main(cfg: DictConfig):
     # Construct dynamic experiment name
     experiment_name = construct_experiment_name(cfg)
     default_root_dir  = os.path.join(cfg.base_dir, experiment_name)
+
+    os.makedirs(f'{default_root_dir}/logs/', exist_ok=True)
+
+    with open(f"{default_root_dir}/logs/config_of_experiment.dictconfig.pickle", "wb") as fd:
+        pickle.dump(cfg, fd)
+    
 
     # Set the seed for reproducibility
     pl.seed_everything(cfg.training.seed)

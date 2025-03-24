@@ -155,10 +155,15 @@ def mean_bias(
     pred: Pred,
     target: Union[torch.FloatTensor, torch.DoubleTensor],
     aggregate_only: bool = False,
+    lat_weights: Optional[Union[torch.FloatTensor, torch.DoubleTensor]] = None
 ) -> Union[torch.FloatTensor, torch.DoubleTensor]:
     per_channel_mb = []
+
     for i in range(pred.shape[1]):
-        per_channel_mb.append(target[:, i].mean() - pred[:, i].mean())
+        error = target[:, i] - pred[:, i]
+        if lat_weights is not None:
+            error = error * lat_weights.cuda()
+        per_channel_mb.append(error.mean())
     per_channel_mb = torch.stack(per_channel_mb)
     result = per_channel_mb.mean()
     if aggregate_only:
@@ -274,7 +279,7 @@ def psnr(
     lat_weights: Optional[Union[torch.FloatTensor, torch.DoubleTensor]] = None,
 ) -> Union[torch.FloatTensor, torch.DoubleTensor]:
 
-    rmse_value = rmse(pred, target, False)[:pred.shape[1]] # C
+    rmse_value = rmse(pred, target, False, lat_weights=lat_weights)[:pred.shape[1]] # C
     per_channel_losses = []
     per_channel_max_value = torch.amax(target, dim=(0,2,3)) - torch.amin(target, dim=(0,2,3)) # C
     for i in range(pred.shape[1]):

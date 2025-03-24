@@ -7,7 +7,7 @@ path_to_elevation: "/app/data/elevation.nc"
 area: "S_USA"
 
 time_stamp: 1
-models: ["resnet", "unet", "deepsd", "ynet", "edrn" ,  "esrgan", "vit",  "hat", "diffusion"] 
+models: ["resnet", "unet", "deepsd", "ynet", "edrn", "vit",  "hat", "esrgan", "diffusion"] 
 seeds: [42, 123, 777]
 
 metrics: [

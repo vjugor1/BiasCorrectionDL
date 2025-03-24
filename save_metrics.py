@@ -69,8 +69,9 @@ def save_metrics():
             
             # Load what that test did
             light_dirs = glob.glob(os.path.join(path, f"{model}_multi_{cfg[model][0].upsampling}_{seed}/logs/lightning_logs/")+"/version_*")
-            light_dirs.sort()
+            light_dirs.sort(key=lambda x: int(x.split('_')[-1]))
             event_dir = light_dirs[-1]
+            print("event_dir: ", event_dir)
             event_files = glob.glob(event_dir+"/events*.*")
             event_files.sort(key=lambda x: os.path.getmtime(x))
             metric_dict = parse_tensorboard(os.path.join(event_dir, event_files[-1]), metrics)

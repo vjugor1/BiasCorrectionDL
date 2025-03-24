@@ -93,8 +93,8 @@ def visualize_at_index(mm, dm, in_transform, out_transform, variable, src, png_n
         
         if png_name:
             visualize_sample(img, extent_clip, f"Input: {variable_with_units}")
-            plt.show()
-            plt.savefig(f"{("/").join(png_name.split("/")[:-1])}/input_{var_name}_{index}.png")
+#            plt.show()
+            plt.savefig(f"{('/').join(png_name.split('/')[:-1])}/input_{var_name}_{index}.png")
 
     # Plot the ground truth
     yy = out_transform(y[adj_index])
@@ -111,7 +111,7 @@ def visualize_at_index(mm, dm, in_transform, out_transform, variable, src, png_n
     
     if png_name:
         visualize_sample(yy, extent_clip, f"Ground truth: {variable_with_units}", pred_min, pred_max)
-        plt.show()
+#        plt.show()
         if pred_min:
             plt.savefig(f"{("/").join(png_name.split("/")[:-1])}/ground_truth_{var_name}_{index}.png")
 
@@ -124,7 +124,7 @@ def visualize_at_index(mm, dm, in_transform, out_transform, variable, src, png_n
     
     if png_name:
         visualize_sample(ppred, extent_clip, f"Prediction: {variable_with_units}", pred_min, pred_max)
-        plt.show()
+#        plt.show()
         if pred_min:
             plt.savefig(f"{png_name}_{var_name}_{index}_pred.png")
 
@@ -132,7 +132,7 @@ def visualize_at_index(mm, dm, in_transform, out_transform, variable, src, png_n
     bias = ppred - yy
     if png_name:
         visualize_sample(bias, extent_clip, f"Bias: {variable_with_units}", bias_min, bias_max)
-        plt.show()
+#        plt.show()
         if bias_min:
             plt.savefig(f"{png_name}_{var_name}_{index}_bias.png")
 
@@ -228,7 +228,7 @@ def visualize_mean_bias(dm, mm, out_transform, variable, src):
         ]
     )
     fig.colorbar(ax.get_images()[0], cax=cax)
-    plt.show()
+#    plt.show()
 
 
 # based on https://github.com/oliverangelil/rankhistogram/tree/master
@@ -250,4 +250,4 @@ def rank_histogram(obs, ensemble, channel):
         ranks, bins=np.linspace(0.5, combined.shape[0] + 0.5, combined.shape[0] + 1)
     )
     plt.bar(range(1, ensemble.shape[0] + 2), hist[0])
-    plt.show()
+#    plt.show()

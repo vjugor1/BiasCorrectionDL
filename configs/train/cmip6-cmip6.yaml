@@ -4,7 +4,7 @@ data:
   low_res_dir: "/app/data/processed/cmip6-cmip6/LR"
   high_res_dir: "/app/data/processed/cmip6-cmip6/HR"
   subsample: 1
-  batch_size: 16
+  batch_size: 4
   buffer_size: 2000
   num_workers: 2
   # Available variables: 
@@ -12,7 +12,8 @@ data:
   # "air_temperature", "u_component_of_wind", "v_component_of_wind", "precipitation", "pressure_sea_level", "specific_humidity", "cloud_cover", "upward_heat_flux", "moisture_in_soil"
   in_variables: ["air_temperature", "u_component_of_wind", "v_component_of_wind", "precipitation", "pressure_sea_level",
                   "specific_humidity", "cloud_cover", "upward_heat_flux", "moisture_in_soil",
-                  "geopotential_at_surface", "land_sea_mask", "latitude", "standard_deviation_of_orography", "standard_deviation_of_filtered_subgrid_orography", "soil_type"]
+                  "geopotential_at_surface", "land_sea_mask", "latitude", "standard_deviation_of_orography",
+                  "standard_deviation_of_filtered_subgrid_orography", "soil_type", "angle_of_sub_gridscale_orography"]
   # Output variables to predict. Options are: "2m_temperature", "10m_u_component_of_wind", "10m_v_component_of_wind", "surface_pressure", "total_precipitation"
   out_variables: ["air_temperature", "u_component_of_wind", "v_component_of_wind", "precipitation"]
 
