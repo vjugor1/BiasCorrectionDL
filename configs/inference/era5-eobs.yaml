@@ -30,6 +30,8 @@ plot_variables: ["tg", "rr"]
 # Available zoom_plot: "prediction", "bias"
 zoom_plot: "prediction"
 
+# Lists below define the desired versions of the model corresponding to seeds list.
+# Pay attention it should include any .ckpt file
 unet:
   - upsampling: "bilinear"
   - versions: [0,0,0]

@@ -31,6 +31,8 @@ plot_variables: ["10m_u_component_of_wind"] #, "10m_u_component_of_wind", "10m_v
 # Available zoom_plot: "prediction", "bias"
 zoom_plot: "prediction"
 
+# Lists below define the desired versions of the model corresponding to seeds list.
+# Pay attention it should include any .ckpt file
 unet:
   - upsampling: "bilinear"
   - versions: [0,0,0]

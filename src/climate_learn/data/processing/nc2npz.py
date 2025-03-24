@@ -97,15 +97,9 @@ def nc2np(path,
         constants = xr.open_dataset(
             constants_path
         )
-
-        # Avoid odd length of lat/lon
-        # if any(len(ax)%2==1 for ax in list(constants.coords)):
-        #     regridder_const, _ = regrid(constants, method, periodic=periodic)
-        #     constants = regridder_const(constants, keep_attrs=True)
             
         lat_axis = [k for k in list(constants.dims) if 'lat' in k][0]
         constants = constants.sortby(constants[lat_axis], ascending=False)
-
         constant_fields = [VAR_TO_NAME[v] for v in CONSTANTS if v in VAR_TO_NAME.keys()]
         constant_values = {}
         for f in constant_fields:
@@ -149,6 +143,7 @@ def nc2np(path,
                 ds = regridder(ds, keep_attrs=True)
             except ValueError:
                 # Falls here due to variations in eobs data only
+                print("Got exception")
                 regridder_current, _ = regrid(ds,
                                               method,
                                               periodic=periodic,
@@ -193,7 +188,6 @@ def nc2np(path,
                         normalize_mean[var].append(var_mean_yearly)
                         normalize_std[var].append(var_std_yearly)
 
-                # clim_yearly = np_vars[var].mean(axis=0)
                 clim_yearly = np.nanmean(np_vars[var], axis=0)
                 if var not in climatology:
                     climatology[var] = [clim_yearly]
@@ -294,14 +288,19 @@ def regrid(ds_in: xr.Dataset,
         
     lat_axis = [k for k in list(ds_target.dims) if 'lat' in k][0]
     lon_axis = [k for k in list(ds_target.dims) if 'lon' in k][0]
+
     if len(ds_target[lat_axis])%2!=0:
         n_cells_lat=(len(ds_target[lat_axis])-1)/scale_factor
     else:
         n_cells_lat=len(ds_target[lat_axis])/scale_factor
     if periodic==True:
-        n_cells_lon=len(ds_target[lon_axis])/scale_factor
+        n_cells_lon=len(ds_target[lon_axis])
     else:
-        n_cells_lon=(len(ds_target[lon_axis])-1)/scale_factor
+        n_cells_lon=len(ds_target[lon_axis])-1
+    if len(ds_target[lon_axis])%2!=0:
+        n_cells_lon=(n_cells_lon-1)/scale_factor
+    else:
+        n_cells_lon=n_cells_lon/scale_factor
 
     lon_new = np.linspace(
         np.min(ds_target[lon_axis].values),
@@ -365,6 +364,7 @@ def convert_nc2npz(
         
     # create regridder and save lat/lon data
     regridder, grid_out = regrid(ds, method, periodic, scale_factor, align_target)
+
     lat = grid_out["lat"]
     lon = grid_out["lon"]
     

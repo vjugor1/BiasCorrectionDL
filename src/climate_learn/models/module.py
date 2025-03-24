@@ -20,6 +20,7 @@ class LitModule(pl.LightningModule):
         train_loss: Callable,
         val_loss: List[Callable],
         test_loss: List[Callable],
+        # train_in_transform: Optional[Callable] = None,
         train_target_transform: Optional[Callable] = None,
         val_target_transforms: Optional[List[Union[Callable, None]]] = None,
         test_target_transforms: Optional[List[Union[Callable, None]]] = None,
@@ -31,6 +32,7 @@ class LitModule(pl.LightningModule):
         self.train_loss = train_loss
         self.val_loss = val_loss
         self.test_loss = test_loss
+        # self.train_in_transform = train_in_transform
         self.train_target_transform = train_target_transform
         if val_target_transforms is not None:
             if len(val_loss) != len(val_target_transforms):
@@ -62,7 +64,7 @@ class LitModule(pl.LightningModule):
             if out_variables[i] in CONSTANTS:
                 yhat[:, i] = y[:, i]
         return yhat
-
+ 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.net(x)
 
@@ -72,6 +74,8 @@ class LitModule(pl.LightningModule):
         batch_idx: int,
     ) -> torch.Tensor:
         x, y, in_variables, out_variables = batch
+        # if self.train_in_transform:
+        #     x = self.train_in_transform(x)
         yhat = self(x).to(device=y.device)
         yhat = self.replace_constant(y, yhat, out_variables)
         if self.train_target_transform:

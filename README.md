@@ -1,134 +1,49 @@
-# Структура репозитория
-```
-.
-├── README.md
-├── configs
-│   ├── cmip6_GhostWindNet27.yaml
-│   ├── eval
-│   ├── process
-│   ├── raw
-│   ├── train
-│   ├── unit_test_configs
-│   └── visual
-├── data
-│   ├── 00-raw
-│   ├── 01-prepared
-│   ├── 02-models
-│   ├── 03-results
-│   └── 04-feed
-├── demo-corrector.ipynb
-├── drun.sh
-├── environments
-│   └── poetry
-├── out
-│   └── visual_eobs27
-├── preprocess.py
-├── requirements.txt
-├── run.py
-├── slurm_run.sh
-├── src
-│   ├── data_assemble
-│   ├── regression
-│   └── utils
-├── test
-│   ├── dummy_data.py
-│   ├── test_climate_padding.py
-│   ├── test_dataload.py
-│   ├── test_prepapre_cmip5.py
-│   └── test_target.py
-├── test.py
-├── train.py
-└── utils_corrector.py
-```
+# **Climate downscaling neural networks benchmark**
 
-# Конфигурационные файлы
-Конфигурационные файлы обрабатываются с помощью пакета [hydra](https://hydra.cc/docs/intro/). Они находятся в папке `configs`.
-Папка `configs` содержит **корневой** конфигурационный файл, описывающий логику модели, подготовки и обучения. Предполагается, что пользователь будет задавать всю логику через **корнейвой** файл, а именно: выбор модели, исходных сырых данных, этапы предобработки, обучения и предсказания. Пример файла -  `configs/cmip6_WindNet27x47.yaml`. **Корневой конфигурационный файл** содержит атрибуты `time_start` и `time_end`, которые используются только на этапе предсказания.
-В следующих подсекциях будут описаны основные этапы.
-## Модель
-* `model_name` -- архитектура из запрограммированных моделей в `src/regression/models/models.py`
-* `time_window` -- рецептивное поле по времени
-* `half_side_size` -- рецептивное поле по пространству
-## Подготовка данных 
-Данный этап обращается к подфайлам в `configs/raw` и `configs/process`. Конфигурационные файлы из первой папки содержат пути к сырым данным (климатические проекции CMIP и измерения с метеостанций). Файлы из второй задают логику подготовки данных. О ней можно прочитать в соответсвутющей секции `README.md` ниже. Кратко,
-* `defaults.raw` -- пути к сырым данным: CMIP, ЦМР, **сырые и распаршенные** данные метеостанций (см. отчет о разработке модели - парсер)
-* `defaults.process` -- логика подготовки. См. комментарии к атрибутам в `configs/process/cmip6_elevation_dataset.yaml`.
 
-## Обучение
-Данный этап обращается к конфигурационным файлам из папки `configs/train`. Файлы описывают логику обучения и формирования датамодуля, задается в атрибуте `defaults.train`.
+Current reppository apply neural networks for climate downscaling task on a different scales.
 
-# Подготовка данных:
-Данный этап необходимо осуществить **и перед обучением (`train.py`), и перед предсказанием (`run.py`).** Конфигурационные файлы, которые используются в скрипте `preprocess.py`, включаются себя файлы из `configs/raw` и `configs/process`. Конкретные конфигурационные файлы задаются в атрибутах **корневого** конфигурационного файла, например, `configs/cmip6_WindNet27x47.yaml`.
+We heavily rely on [ClimateLearn framework](https://github.com/aditya-grover/climate-learn/tree/main) developed for this task, among others.
 
-По итогу предобработки данных, будет создана директория по пути, указанном в атрибуте `cfg.process.data_dir`, куда будут сохранены предобработанные данные. Среди них: координатные оси, нормализованные признаки, параметры нормализации и предобработанная целевая переменная. Во время обучения и предсказания будут использоваться именно эти данные.
-Общий пример запуска подготовки данных из консоли:
-```
-python preprocess.py --config-path <PATH TO FOLDER WITH CONFIGS> --config-name <CONFIG NAME>
-```
-Конкретные пример запуска подготовки данных из консоли:
-```
-python preprocess.py --config-path /app/wind/configs --config-name cmip6_WindNet27x47.yaml
-```
-# Обучение:
-**Не забудьте запустить `preprocess.py`, чтобы подготовить данные!**
-Конфигурационный файл обучения задает технические параметры: оптимизатор, размер батча, функция потерь, используемые видеокарты и т.п. Конкретная конфигурация задается из **корневого** конфигурационного фалйа, см. Секцию Конфигурационные файлы.
-Общий пример запуска обучения:
-```
-python train.py --config-path <PATH TO FOLDER WITH CONFIGS> --config-name <CONFIG NAME>
-```
-Конкретный пример запуска обучения:
-```
-python train.py --config-path configs --config-name cmip6_WindNet27x47.yaml
-```
 
-# Предсказание:
-**Не забудьте подготовить данные с помощью `preprocess.py`!**
-Параметры предсказания задаются в конфигурационных файлах из папки `configs/eval`, путь к конкретному файлу необходимо указать в атрибуте `defaults.eval` корневого конфигурационного файла. Пример: `configs/cmip6_WindNet27x47.yaml`
-В файлах `configs/eval` можно указать пороговое значение скорости ветра, которое определяет риск, путь к чекпоинту обученной модели. Область задается в конфигурационном файле из папки `eval`, атрибуты `eval.lat_min`, `eval.lat_max`, `eval.lon_min`, `eval.lon_max` Временные рамки можно передать в командной строке, как в примере ниже:
+# Config files
+To tune the process, we apply [hydra package](https://hydra.cc/docs/intro/) and use config files from `configs` folder. Subfolders there are responsible for various stages:
+* `configs/load` folder includes configs for loading **ERA5** (0.25 degree resolution) and **CMIP6** data. 
+
+Pay attention that for loading **ERA** data with 5.625 and 2.8125 degrees we follow the ClimaeLearn procedure. You might find the original version in [download.py](https://github.com/vjugor1/BiasCorrectionDL/blob/main/src/climate_learn/data/download.py) script.
+* `configs/train` folder includes configs for training of 3 different setups based on **ERA5**, **CMIP6** and **E-OBS** datasets. It is supposed that user might set here the training procedure, choosing the data sources, variables used, the model and its parameters.
+* `configs/inference` required if you have already trained some models (i.e. you have saved `.ckpt` files), and want to evaluate them with test data without retraining. Also, it includes some coordinate bounds to plot the model outputs at the area of interest (see below for details).
+
+Also we use the evaluation data loaded with [evaluation.py](https://github.com/vjugor1/BiasCorrectionDL/blob/main/src/data_load/evaluation.py) script.
+
+# Data preprocessing
+We have slightly modified the original ClimateLearn procedure to preprocess raw data, but it remains largely unchanged. To execute it, follow the pipeline in the `notebooks/process_raw.ipynb` notebook to convert the data to the necessary format.
+
+# Training
+Ensure that you have completed the preprocessing of the raw data, as this step requires the preprocessed version.
+
+This stage refers to the configuration files from the `configs/train` folder.
+
+The example for training the model from console:
+
 ```
-python run.py --config-path <PATH TO FOLDER WITH CONFIGS> --config-name <CONFIG NAME> time_start='YYYY-MM-DD' time_end='YYYY-MM-DD'
+python era5_era5_dl.py
 ```
-Пример:
+Single run performs the training of the single model. To train another architecture/parameters, edit the configuration file and run training again.
+
+# Evaluation
+
+Once you have trained the model you could refer to the checkpoint and test that model with test data. Please, specify the details in `.yaml` file at `configs/inference` folder. As a part of the pipeline you could collect the desired metrics of desired model (list everything the config file) with `save_metrics.py` script. Also, one might plot output of the model with `plots.py` script. The bounds of area of interest could be defined in `configs/inference` folder. Run procedure like this:
 ```
-python run.py --config-path configs/ --config-name cmip6_WindNet27x47.yaml time_start='2019-01-30' time_end='2019-01-31'
+python plots.py
+```
+Pay attention to the necessity to define config path in that script explicitly.
 ```
 
 # Docker:
 
-Для сборки образа, выполнить в командной строке:
+For building Docker container refer to the options available in `environements` folder.
 
-```
-docker build --build-arg DOCKER_USER_ID=`id -u` --build-arg DOCKER_GROUP_ID=`id -g` -t wind_dev environments/poetry 
+# Citation
 
-export WANDB_API_KEY=<key>
-
-docker run -it \
-   -v $(pwd):/app/wind \
-   -v <DATA FOLDER>:/app/wind/data \
-   -m 256000m --cpus=16 --gpus '"device=0,1"' \
-   --ipc=host \
-   -w="/app/wind" \
-   -e "WANDB_API_KEY=$WANDB_API_KEY" \
-   -e "WANDB_DATA_DIR=/app/wind/out" \
-   -e "WANDB_DIR=/app/wind/out" \
-   -e "WANDB_CACHE_DIR=/app/wind/out" \
-   wind_dev
-
-```
-Пример:
-
-
-```
-   docker run -it \
-   -v $(pwd):/app/wind \
-   -v /mnt/data/lukashevich/:/app/wind/data \
-   -m 256000m --cpus=16 --gpus '"device=0,1"' \
-   --ipc=host \
-   -w="/app/wind" \
-   -e "WANDB_API_KEY=$WANDB_API_KEY" \
-   -e "WANDB_DATA_DIR=/app/wind/out" \
-   -e "WANDB_DIR=/app/wind/out" \
-   -e "WANDB_CACHE_DIR=/app/wind/out" \
-   wind_dev
-
-```
+Please city us ... TBD as soon as the paper is accepted. Stay tuned!

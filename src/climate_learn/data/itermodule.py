@@ -99,6 +99,10 @@ class IterDataModule(pl.LightningDataModule):
         self.data_val: Optional[IterableDataset] = None
         self.data_test: Optional[IterableDataset] = None
         
+        # if os.path.isfile(os.path.join(self.hparams.inp_root_dir, "mask.npy")):
+        #     self.in_mask = torch.from_numpy(
+        #         np.load(os.path.join(self.hparams.inp_root_dir, "mask.npy"))
+        #     )
         if os.path.isfile(os.path.join(self.hparams.out_root_dir, "mask.npy")):
             self.out_mask = torch.from_numpy(
                 np.load(os.path.join(self.hparams.out_root_dir, "mask.npy"))
