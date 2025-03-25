@@ -9,13 +9,15 @@ from tensorboard.backend.event_processing import event_accumulator
 import pandas as pd
 import pickle
 
-CONFIG_NAME = "cmip6-cmip6"
+CONFIG_NAME = "era5-eobs"
 
 if CONFIG_NAME == "cmip6-cmip6":
     from cmip6_cmip6_dl import main
 elif CONFIG_NAME == "era5-era5":
     from era5_era5_dl import main
 elif CONFIG_NAME == "eobs-eobs":
+    from eobs_eobs_dl import main
+elif CONFIG_NAME == "era5-eobs":
     from eobs_eobs_dl import main
     
 

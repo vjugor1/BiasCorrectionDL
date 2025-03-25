@@ -37,7 +37,7 @@ def main(cfg: DictConfig):
     
     # Set up masking
     dm.mask_out = Mask(dm.out_mask)
-    dm.mask_in = Mask(dm.in_mask)
+    # dm.mask_in = Mask(dm.in_mask)
     
     denorm = Denormalize(dm)
     dm.denorm_mask = lambda x: denorm(dm.mask_out(x))
@@ -194,10 +194,12 @@ def setup_model(dm, config):
             "max_epochs": config.training.max_epochs,
         },
         train_loss=tuple(config.training.train_loss) if len(config.training.train_loss) > 1 else str(config.training.train_loss[0]),
-        train_in_transform=dm.mask_in,
+        # train_in_transform=dm.mask_in,
         train_target_transform=dm.mask_out,
-        val_target_transform=[dm.denorm_mask, dm.denorm_mask, dm.denorm_mask, dm.mask_out, dm.denorm_mask, dm.denorm_mask, dm.denorm_mask],
-        test_target_transform=[dm.denorm_mask, dm.denorm_mask, dm.denorm_mask, dm.denorm_mask, dm.denorm_mask, dm.denorm_mask]
+        val_target_transform=[dm.denorm_mask, dm.denorm_mask, dm.denorm_mask, dm.mask_out, dm.denorm_mask, dm.denorm_mask, dm.mask_out,],
+        test_target_transform=[dm.denorm_mask, dm.denorm_mask, dm.denorm_mask,
+                               dm.denorm_mask, dm.denorm_mask, dm.denorm_mask,
+                               dm.denorm_mask, dm.denorm_mask, dm.mask_out,]
     )
     return model
 

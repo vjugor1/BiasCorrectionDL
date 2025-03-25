@@ -1,8 +1,8 @@
 base_dir: "/app/data/experiments/downscaling-ERA-EOBS"
 
 data:
-  era5_low_res_dir: "/app/data/processed/era5-eobs/era5_0.25_D"
-  eobs_high_res_dir: "/app/data/processed/era5-eobs/e-obs/ensemble_mean/0125_grid"
+  low_res_dir: "/app/data/processed/era5-eobs/era5_0.25_D"
+  high_res_dir: "/app/data/processed/era5-eobs/e-obs/ensemble_mean/0125_grid"
   subsample: 1
   batch_size: 4
   buffer_size: 2000

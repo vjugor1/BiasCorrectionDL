@@ -57,8 +57,8 @@ def visualize_at_index(mm, dm, in_transform, out_transform, variable, src, png_n
         imgs = []
         for time_step in range(history):
             img = in_transform(xx[time_step])[channel].detach().cpu().numpy()
-            if src in ["era5", "era5-eobs"]:
-                img = np.flip(img, 0)
+            # if src in ["era5", "era5-eobs"]:
+            img = np.flip(img, 0)
             img = in_ax.imshow(img, cmap=plt.cm.coolwarm, animated=True, extent=extent)
             imgs.append([img])
         cax = in_fig.add_axes(
@@ -81,50 +81,46 @@ def visualize_at_index(mm, dm, in_transform, out_transform, variable, src, png_n
         if src == "era5-eobs":
             # Era-eobx fix: data doesn't cover all the world
             x1, x2, y1, y2, x_cell, y_cell= imshow_clip(img, extent, world=False)
-            img = img[round(y1):round(y2), round(x1):round(x2)]
 
         else:
-            img = np.flip(img, 0)
+            # img = np.flip(img, 0)
             x1, x2, y1, y2, x_cell, y_cell = imshow_clip(img, extent)
-            img = img[round(y1):round(y2), round(x1):round(x2)]
-        
+            
+        img = img[round(y1):round(y2), round(x1):round(x2)]
         extent_clip = [x1*x_cell,x2*x_cell, 90-y2*y_cell, 90-y1*y_cell]
         anim = None
         
         if png_name:
             visualize_sample(img, extent_clip, f"Input: {variable_with_units}")
-#            plt.show()
             plt.savefig(f"{('/').join(png_name.split('/')[:-1])}/input_{var_name}_{index}.png")
 
     # Plot the ground truth
     yy = out_transform(y[adj_index])
     yy = yy[channel].detach().cpu().numpy()
-
-    if src == "era5-eobs":
+    if src=="era5":
+        yy = np.flip(yy, 0)
+    if src=="era5-eobs":
         x1, x2, y1, y2, x_cell, y_cell= imshow_clip(yy, extent, world=False)
         extent_clip = extent
     else:
-        yy = np.flip(yy, 0)
         x1, x2, y1, y2, x_cell, y_cell= imshow_clip(yy, extent)
         extent_clip = [x1*x_cell, x2*x_cell, 90-y2*y_cell, 90-y1*y_cell]
     yy = yy[round(y1):round(y2), round(x1):round(x2)]
     
     if png_name:
         visualize_sample(yy, extent_clip, f"Ground truth: {variable_with_units}", pred_min, pred_max)
-#        plt.show()
         if pred_min:
             plt.savefig(f"{("/").join(png_name.split("/")[:-1])}/ground_truth_{var_name}_{index}.png")
 
     # Plot the prediction
     ppred = out_transform(pred[adj_index])
     ppred = ppred[channel].detach().cpu().numpy()
-    if src != "era5-eobs":
+    if src== "era5":
         ppred = np.flip(ppred, 0)
     ppred = ppred[round(y1):round(y2), round(x1):round(x2)]
     
     if png_name:
         visualize_sample(ppred, extent_clip, f"Prediction: {variable_with_units}", pred_min, pred_max)
-#        plt.show()
         if pred_min:
             plt.savefig(f"{png_name}_{var_name}_{index}_pred.png")
 
@@ -132,7 +128,6 @@ def visualize_at_index(mm, dm, in_transform, out_transform, variable, src, png_n
     bias = ppred - yy
     if png_name:
         visualize_sample(bias, extent_clip, f"Bias: {variable_with_units}", bias_min, bias_max)
-#        plt.show()
         if bias_min:
             plt.savefig(f"{png_name}_{var_name}_{index}_bias.png")
 
@@ -228,7 +223,6 @@ def visualize_mean_bias(dm, mm, out_transform, variable, src):
         ]
     )
     fig.colorbar(ax.get_images()[0], cax=cax)
-#    plt.show()
 
 
 # based on https://github.com/oliverangelil/rankhistogram/tree/master
@@ -250,4 +244,3 @@ def rank_histogram(obs, ensemble, channel):
         ranks, bins=np.linspace(0.5, combined.shape[0] + 0.5, combined.shape[0] + 1)
     )
     plt.bar(range(1, ensemble.shape[0] + 2), hist[0])
-#    plt.show()
