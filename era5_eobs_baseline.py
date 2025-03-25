@@ -27,8 +27,8 @@ def load_model_baseline():
 
     dm = IterDataModule(
         task="downscaling",
-        inp_root_dir=cfg_train.data.era5_low_res_dir,
-        out_root_dir=cfg_train.data.eobs_high_res_dir,
+        inp_root_dir=cfg_train.data.low_res_dir,
+        out_root_dir=cfg_train.data.high_res_dir,
         in_vars=in_vars,
         out_vars=out_vars,
         subsample=1,
@@ -49,21 +49,27 @@ def load_model_baseline():
     #     architecture="nearest-interpolation",
     #     train_target_transform=mask,
     #     val_target_transform=[denorm_mask, denorm_mask, denorm_mask, mask, denorm_mask, denorm_mask, denorm_mask],
-    #     test_target_transform=[denorm_mask, denorm_mask, denorm_mask, denorm_mask, denorm_mask, denorm_mask],
+    #     test_target_transform=[denorm_mask, denorm_mask, denorm_mask,
+    #                           denorm_mask, denorm_mask, denorm_mask,
+                                # denorm_mask, denorm_mask, mask,],
     # )
     bilinear = load_downscaling_module(
         data_module=dm,
         architecture="bilinear-interpolation",
         train_target_transform=mask,
         val_target_transform=[denorm_mask, denorm_mask, denorm_mask, mask, denorm_mask, denorm_mask, denorm_mask],
-        test_target_transform=[denorm_mask, denorm_mask, denorm_mask, denorm_mask, denorm_mask, denorm_mask],
+        test_target_transform=[denorm_mask, denorm_mask, denorm_mask,
+                               denorm_mask, denorm_mask, denorm_mask,
+                               denorm_mask, denorm_mask, mask],
     )
     bicubic = load_downscaling_module(
         data_module=dm,
         architecture="bicubic-interpolation",
         train_target_transform=mask,
         val_target_transform=[denorm_mask, denorm_mask, denorm_mask, mask, denorm_mask, denorm_mask, denorm_mask],
-        test_target_transform=[denorm_mask, denorm_mask, denorm_mask, denorm_mask, denorm_mask, denorm_mask]
+        test_target_transform=[denorm_mask, denorm_mask, denorm_mask,
+                               denorm_mask, denorm_mask, denorm_mask,
+                               denorm_mask, denorm_mask, mask]
     )
 
     callbacks = [
@@ -73,6 +79,7 @@ def load_model_baseline():
     # Evaluate baselines (no training needed)
     trainer = pl.Trainer(
         accelerator="gpu",
+        devices=1,
         callbacks=callbacks,
     )
      
@@ -87,7 +94,7 @@ if __name__ == "__main__":
         ["bilinear-interpolation", "bicubic-interpolation"],
     ):
         print("Validating model:", model_name)
-        trainer.validate(model, dataloaders=dm)
+        # trainer.validate(model, dataloaders=dm)
 
         print("Testing model:", model_name)
         trainer.test(model, dataloaders=dm)
