@@ -162,7 +162,7 @@ def mean_bias(
     for i in range(pred.shape[1]):
         error = target[:, i] - pred[:, i]
         if lat_weights is not None:
-            error = error * lat_weights.cuda()
+            error = error * lat_weights #.cuda()
         per_channel_mb.append(error.mean())
     per_channel_mb = torch.stack(per_channel_mb)
     result = per_channel_mb.mean()
@@ -348,7 +348,8 @@ def kge(
         kge, r, alpha, beta = kge_torch(pred_channel, target_channel)
         per_channel_losses[i] = kge
         
-    per_channel_losses = torch.tensor(per_channel_losses).squeeze()
+    # per_channel_losses = torch.tensor(per_channel_losses).squeeze()
+    per_channel_losses = per_channel_losses.clone().detach().squeeze()
     loss = per_channel_losses.mean()
     if aggregate_only:
         return loss

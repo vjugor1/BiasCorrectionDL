@@ -42,7 +42,7 @@ def load_model_baseline():
     ]
     # Evaluate baselines (no training needed)
     trainer = pl.Trainer(
-        accelerator="cpu",
+        accelerator="gpu",
         callbacks=callbacks,
     )
     

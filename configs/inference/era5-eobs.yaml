@@ -1,5 +1,5 @@
 task: era5-eobs
-path: "/app/data/experiments/downscaling-ERA-EOBS"
+path: "/app/data/experiments/downscaling-ERA-EOBS_factor8"
 path_to_elevation: "/app/data/elevation.nc"
 
 # Available areas: "Europe"
@@ -70,4 +70,4 @@ esrgan:
 
 hat:
   - upsampling: "none"
-  - versions: [0,0,0]
+  - versions: [39,0,0]

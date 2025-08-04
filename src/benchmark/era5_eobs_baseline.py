@@ -27,8 +27,8 @@ def load_model_baseline():
 
     dm = IterDataModule(
         task="downscaling",
-        inp_root_dir=cfg_train.data.low_res_dir,
-        out_root_dir=cfg_train.data.high_res_dir,
+        inp_root_dir=cfg_train.data.era5_low_res_dir,
+        out_root_dir=cfg_train.data.eobs_high_res_dir,
         in_vars=in_vars,
         out_vars=out_vars,
         subsample=1,

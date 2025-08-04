@@ -18,7 +18,7 @@ elif CONFIG_NAME == "era5-era5":
 elif CONFIG_NAME == "eobs-eobs":
     from eobs_eobs_dl import main
 elif CONFIG_NAME == "era5-eobs":
-    from eobs_eobs_dl import main
+    from era5_eobs_dl import main
     
 
 with initialize(version_base=None, config_path="configs/inference"):
@@ -65,6 +65,7 @@ def save_metrics():
             ckpt_dir = glob.glob(os.path.join(path, f"{model}_multi_{cfg[model][0].upsampling}_{seed}/logs/version_{version}/checkpoints/"+"epoch_*.*"))
             cfg_train["model"].upsampling = cfg[model][0].upsampling
             cfg_train.model.architecture = model
+            print(ckpt_dir)
             cfg_train.training.checkpoint = ckpt_dir[-1]
             print(cfg_train.training.checkpoint)
             main(cfg_train)
@@ -84,16 +85,16 @@ def save_metrics():
                 df_seed.at[m, model] = row.loc[0]["value"]
         
         # Save df with metrics of current seed
-        df_seed.to_pickle(os.path.join(cfg.path, "plots", f"metrics_{seed}.pkl"))
+        df_seed.to_pickle(os.path.join(cfg.path, "plots", f"metrics_{seed}_hat.pkl"))
     
     # # Average over all seeds
     for i, seed in enumerate(cfg.seeds):
-        df_seed = pd.read_pickle(os.path.join(cfg.path, "plots", f"metrics_{seed}.pkl"))
+        df_seed = pd.read_pickle(os.path.join(cfg.path, "plots", f"metrics_{seed}_hat.pkl"))
         df = pd.concat([df, df_seed])
 
     # # Save averaged values
     df_avg = df.groupby(level=0).mean()
-    df_avg.to_pickle(os.path.join(cfg.path, "plots", f"metrics_avg.pkl"))
+    df_avg.to_pickle(os.path.join(cfg.path, "plots", f"metrics_avg_hat.pkl"))
 
     
 if __name__ == "__main__":

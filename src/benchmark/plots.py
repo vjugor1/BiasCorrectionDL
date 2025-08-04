@@ -13,9 +13,9 @@ from torchvision import transforms
 
 
 with initialize(version_base=None, config_path="configs/train"):
-    cfg_train = compose(config_name="era5-eobs")
+    cfg_train = compose(config_name="cmip6-cmip6")
 with initialize(version_base=None, config_path="configs/inference"):
-    cfg_inference = compose(config_name="era5-eobs")
+    cfg_inference = compose(config_name="cmip6-cmip6")
 
 if cfg_inference.task=="era5-era5":
     from era5_era5_dl import *
@@ -44,7 +44,6 @@ def load_model(dm, arch):
     ckpt = glob.glob(os.path.join(cfg_inference.path,
                                 experiment_name,
                                 f"logs/version_{cfg_inference[arch][1].versions[i]}/checkpoints/*.ckpt"))[-1]
- 
     if arch=="ynet":
         normalized_clim = prepare_ynet_climatology(dm, path_to_elevation,
                                                 out_vars=cfg_train.data.out_variables)

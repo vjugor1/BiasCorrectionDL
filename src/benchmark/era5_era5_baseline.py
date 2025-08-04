@@ -13,7 +13,7 @@ torch.set_float32_matmul_precision("medium")
 
 def load_model_baseline():
     with initialize(version_base=None, config_path="configs/train"):
-        cfg_train = compose(config_name="era5-era5")
+        cfg_train = compose(config_name="era5-eobs")
     
     # Set up data
     in_vars = out_vars = cfg_train.data.out_variables # For baseline input==output
