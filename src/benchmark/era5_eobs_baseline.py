@@ -6,7 +6,8 @@ import torch
 import pickle
 from pytorch_lightning.callbacks import RichModelSummary, RichProgressBar
 import pytorch_lightning as pl
-
+import sys
+sys.path.append("/app")
 from src.climate_learn.transforms import Mask, Denormalize
 from src.climate_learn import load_downscaling_module
 from src.climate_learn.data import IterDataModule
@@ -14,7 +15,7 @@ from src.climate_learn.data import IterDataModule
 torch.set_float32_matmul_precision("medium")
 
 def load_model_baseline():
-    with initialize(version_base=None, config_path="configs/train"):
+    with initialize(version_base=None, config_path="../../configs/train"):
         cfg_train = compose(config_name="era5-eobs")
     
     # Set up data
