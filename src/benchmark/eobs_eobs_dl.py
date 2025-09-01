@@ -4,13 +4,13 @@ from omegaconf import DictConfig, OmegaConf
 import hydra
 import numpy as np
 
-import pytorch_lightning as pl
 # Third party
 import torch
 from pytorch_lightning.callbacks import (EarlyStopping, LearningRateMonitor,
                                          ModelCheckpoint, RichModelSummary,
                                          RichProgressBar)
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
+import pytorch_lightning as pl
 
 from src.climate_learn import (IterDataModule, LitModule,
                                DiffusionLitModule, DeepSDLitModule,

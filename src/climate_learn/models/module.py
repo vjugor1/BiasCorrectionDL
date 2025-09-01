@@ -1,5 +1,5 @@
 # Standard library
-from typing import Callable, List, Optional, Tuple, Union
+from typing import Callable, List, Optional, Tuple, Union, Dict
 
 # Local application
 from ..data.processing.era5_constants import CONSTANTS
@@ -20,7 +20,7 @@ class LitModule(pl.LightningModule):
         train_loss: Callable,
         val_loss: List[Callable],
         test_loss: List[Callable],
-        # train_in_transform: Optional[Callable] = None,
+        test_in_transform: Optional[Callable] = None,
         train_target_transform: Optional[Callable] = None,
         val_target_transforms: Optional[List[Union[Callable, None]]] = None,
         test_target_transforms: Optional[List[Union[Callable, None]]] = None,
@@ -32,7 +32,7 @@ class LitModule(pl.LightningModule):
         self.train_loss = train_loss
         self.val_loss = val_loss
         self.test_loss = test_loss
-        # self.train_in_transform = train_in_transform
+        self.test_in_transform = test_in_transform
         self.train_target_transform = train_target_transform
         if val_target_transforms is not None:
             if len(val_loss) != len(val_target_transforms):
@@ -74,8 +74,6 @@ class LitModule(pl.LightningModule):
         batch_idx: int,
     ) -> torch.Tensor:
         x, y, in_variables, out_variables = batch
-        # if self.train_in_transform:
-        #     x = self.train_in_transform(x)
         yhat = self(x).to(device=y.device)
         yhat = self.replace_constant(y, yhat, out_variables)
         if self.train_target_transform:
@@ -111,18 +109,25 @@ class LitModule(pl.LightningModule):
 
     def test_step(
         self,
-        batch: Tuple[torch.Tensor, torch.Tensor, List[str], List[str]],
+        batch, #: Tuple[torch.Tensor, torch.Tensor, List[str], List[str], Tuple(Dict)],
         batch_idx: int,
     ):
+
         if self.mode == "direct":
             self.evaluate(batch, "test")
         if self.mode == "iter":
             self.evaluate_iter(batch, self.n_iters, "test")
 
     def evaluate(
-        self, batch: Tuple[torch.Tensor, torch.Tensor, List[str], List[str]], stage: str
+        self, batch: Tuple[torch.Tensor, torch.Tensor, List[str], List[str], Tuple[Dict]], stage: str
     ):
         x, y, in_variables, out_variables = batch
+        batch_size=len(batch[0])
+        if self.test_in_transform:
+            # Add dim K with random distribution
+            x = self.test_in_transform(x)
+            x = x.view(-1, x.size()[2], x.size()[3], x.size()[4])
+
         yhat = self(x).to(device=y.device)
         yhat = self.replace_constant(y, yhat, out_variables)
         if stage == "val":
@@ -142,7 +147,10 @@ class LitModule(pl.LightningModule):
             else:
                 yhat_transformed = yhat
                 y_transformed = y
-            
+            if self.test_in_transform:
+                extra_dim_size = int(yhat_transformed.size()[0]/batch_size)
+                y_transformed = y_transformed.unsqueeze(1).repeat(1, extra_dim_size, 1, 1, 1)
+                y_transformed = y_transformed.view(-1, y_transformed.size()[2], y_transformed.size()[3], y_transformed.size()[4])
             # Calculate the losses
             losses = loss_fn(yhat_transformed, y_transformed)
             loss_name = getattr(loss_fn, "name", f"loss_{i}")
@@ -161,7 +169,7 @@ class LitModule(pl.LightningModule):
         on_step=False,
         on_epoch=True,
         sync_dist=True,
-        batch_size=len(batch[0]),
+        batch_size=batch_size,
         )
         return loss_dict
 
@@ -240,6 +248,7 @@ class DiffusionLitModule(LitModule):
         train_loss: Callable,
         val_loss: List[Callable],
         test_loss: List[Callable],
+        test_in_transform = None,
         train_target_transform: Optional[Callable] = None,
         val_target_transforms: Optional[List[Union[Callable, None]]] = None,
         test_target_transforms: Optional[List[Union[Callable, None]]] = None,
@@ -326,6 +335,7 @@ class YnetLitModule(LitModule):
         train_loss: Callable,
         val_loss: List[Callable],
         test_loss: List[Callable],
+        test_in_transform = None,
         train_target_transform: Optional[Callable] = None,
         val_target_transforms: Optional[List[Union[Callable, None]]] = None,
         test_target_transforms: Optional[List[Union[Callable, None]]] = None,
@@ -355,13 +365,14 @@ class DeepSDLitModule(LitModule):
         train_loss: Callable,
         val_loss: List[Callable],
         test_loss: List[Callable],
+        test_in_transform = None,
         train_target_transform: Optional[Callable] = None,
         val_target_transforms: Optional[List[Union[Callable, None]]] = None,
         test_target_transforms: Optional[List[Union[Callable, None]]] = None,
         elevation: Optional[List[Union[torch.Tensor, None]]] = None,
     ):
         super().__init__(net, optimizer, lr_scheduler,
-                         train_loss, val_loss, test_loss,
+                         train_loss, val_loss, test_loss, test_in_transform,
                          train_target_transform, val_target_transforms,
                          test_target_transforms)
         self.elevation = elevation
@@ -384,6 +395,7 @@ class GANLitModule(LitModule):
         train_loss: Callable,
         val_loss: List[Callable] = None,
         test_loss: List[Callable] = None,
+        test_in_transform = None,
         train_target_transform: Optional[Callable] = None,
         val_target_transforms: Optional[List[Union[Callable, None]]] = None,
         test_target_transforms: Optional[List[Union[Callable, None]]] = None,
@@ -488,6 +500,7 @@ class ESRGANLitModule(LitModule):
         train_loss: Callable,
         val_loss: List[Callable] = None,
         test_loss: List[Callable] = None,
+        test_in_transform = None,
         train_target_transform: Optional[Callable] = None,
         val_target_transforms: Optional[List[Union[Callable, None]]] = None,
         test_target_transforms: Optional[List[Union[Callable, None]]] = None,

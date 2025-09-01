@@ -6,8 +6,7 @@ import torch
 import pickle
 from pytorch_lightning.callbacks import RichModelSummary, RichProgressBar
 import pytorch_lightning as pl
-import sys
-sys.path.append("/app")
+
 from src.climate_learn.transforms import Mask, Denormalize
 from src.climate_learn import load_downscaling_module
 from src.climate_learn.data import IterDataModule

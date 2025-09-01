@@ -1,7 +1,7 @@
-base_dir: "/app/data/experiments/downscaling-CMIP-CMIP_factor4"
+base_dir: "/app/data/experiments/downscaling-CMIP-CMIP_factor2"
 
 data:
-  low_res_dir: "/app/data/processed/cmip6-cmip6/LR_factor4"
+  low_res_dir: "/app/data/processed/cmip6-cmip6/LR_factor2"
   high_res_dir: "/app/data/processed/cmip6-cmip6/HR"
   subsample: 1
   batch_size: 2
@@ -19,7 +19,7 @@ data:
 
 model:
   # Model architecture options: "resnet", "unet", "vit", "ynet", "deepsd", "hat", "esrgan", "diffusion", "edrn"
-  architecture: "hat"
+  architecture: "deepsd"
   # Upsampling method options: "bilinear", "bicubic", "unet_upsampling", "unet_upsampling_bilinear", "none"
   # NOTE: Some models (ynet, deepsd, diffusion, dcgan, edrn) do not support input upsampling, so they need this parameter set "none"
   upsampling: "none"
@@ -33,6 +33,7 @@ training:
   betas: [0.9, 0.99]
   warmup_epochs: 5
   train_loss: ["mse"]
+  add_input_noise: True # whether to add random distribution to each variable input
   perceptual_hp:        #works only with single gpu; total loss is content(pred,target) + feature_coeff * feature_loss + gram_coeff * gram_loss
     feature_coeff: 0.01 #coefficient before \| phi_{relu_n}(pred) - phi_{relu_n}(target)) \|_2^2
     gram_coeff: 0.01    #coefficient before \| phi_{relu_n}(pred) \cdot phi_{relu_n}(pred)^T - phi_{relu_n}(target) \cdot phi_{relu_n}(target)^T \|_F^2

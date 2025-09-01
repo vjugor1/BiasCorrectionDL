@@ -9,7 +9,8 @@ from tensorboard.backend.event_processing import event_accumulator
 import pandas as pd
 import pickle
 
-CONFIG_NAME = "era5-eobs"
+CONFIG_NAME = "cmip6-cmip6"
+CONFIG_NAME_INFERENCE = "cmip6-cmip6_factor2"
 
 if CONFIG_NAME == "cmip6-cmip6":
     from cmip6_cmip6_dl import main
@@ -19,12 +20,12 @@ elif CONFIG_NAME == "eobs-eobs":
     from eobs_eobs_dl import main
 elif CONFIG_NAME == "era5-eobs":
     from era5_eobs_dl import main
-    
 
-with initialize(version_base=None, config_path="configs/inference"):
-                cfg = compose(config_name=CONFIG_NAME)
+print(os.getcwd())
+with initialize(version_base=None, config_path="../../configs/inference"):
+                cfg = compose(config_name=CONFIG_NAME_INFERENCE)
 
-with initialize(version_base=None, config_path="configs/train"):
+with initialize(version_base=None, config_path="../../configs/train"):
                 cfg_train = compose(config_name=CONFIG_NAME)
                 
                 
@@ -85,11 +86,11 @@ def save_metrics():
                 df_seed.at[m, model] = row.loc[0]["value"]
         
         # Save df with metrics of current seed
-        df_seed.to_pickle(os.path.join(cfg.path, "plots", f"metrics_{seed}_hat.pkl"))
+        df_seed.to_pickle(os.path.join(cfg.path, "plots", f"metrics_{seed}_gauss.pkl"))
     
     # # Average over all seeds
     for i, seed in enumerate(cfg.seeds):
-        df_seed = pd.read_pickle(os.path.join(cfg.path, "plots", f"metrics_{seed}_hat.pkl"))
+        df_seed = pd.read_pickle(os.path.join(cfg.path, "plots", f"metrics_{seed}_gauss.pkl"))
         df = pd.concat([df, df_seed])
 
     # # Save averaged values

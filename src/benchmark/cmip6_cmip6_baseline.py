@@ -12,7 +12,7 @@ from src.climate_learn.data import IterDataModule
 torch.set_float32_matmul_precision("medium")
 
 def load_model_baseline():
-    with initialize(version_base=None, config_path="configs/train"):
+    with initialize(version_base=None, config_path="../../configs/train"):
         cfg_train = compose(config_name="cmip6-cmip6")
     
     # Set up data

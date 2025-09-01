@@ -1,16 +1,16 @@
 # Standard library
-import os
+import os, sys
 from omegaconf import DictConfig, OmegaConf
 import hydra
 import pickle
 
-import pytorch_lightning as pl
 # Third party
 import torch
 from pytorch_lightning.callbacks import (EarlyStopping, LearningRateMonitor,
                                          ModelCheckpoint, RichModelSummary,
                                          RichProgressBar)
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
+import pytorch_lightning as pl
 
 from src.climate_learn import (IterDataModule, LitModule,
                                DiffusionLitModule, DeepSDLitModule,
@@ -19,10 +19,11 @@ from src.climate_learn import (IterDataModule, LitModule,
 from src.climate_learn.utils.gis import prepare_ynet_climatology, prepare_deepsd_elevation, prepare_dcgan_elevation
 from src.climate_learn.data.processing.era5_constants import (
     DEFAULT_PRESSURE_LEVELS, PRESSURE_LEVEL_VARS)
+from src.climate_learn.transforms import add_iid_gaussian
 
 torch.set_float32_matmul_precision("medium")
 
-@hydra.main(config_path="/app/configs/train", config_name="cmip6-cmip6")
+@hydra.main(config_path="../../configs/train", config_name="cmip6-cmip6")
 def main(cfg: DictConfig):
     # Construct dynamic experiment name
     experiment_name = construct_experiment_name(cfg)
@@ -33,7 +34,6 @@ def main(cfg: DictConfig):
     with open(f"{default_root_dir}/logs/config_of_experiment.dictconfig.pickle", "wb") as fd:
         pickle.dump(cfg, fd)
     
-
     # Set the seed for reproducibility
     pl.seed_everything(cfg.training.seed)
 
@@ -190,6 +190,7 @@ def setup_model(dm, config):
         },
         train_loss=tuple(config.training.train_loss) if len(config.training.train_loss) > 1 else str(config.training.train_loss[0]),
         train_loss_kwargs=config.training.perceptual_hp,
+        test_in_transform=add_iid_gaussian if config.training.add_input_noise==True else None 
     )
     return model
 

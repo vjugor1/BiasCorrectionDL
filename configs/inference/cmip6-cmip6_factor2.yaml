@@ -1,5 +1,5 @@
 task: cmip6-cmip6
-path: "/app/data/experiments/downscaling-CMIP-CMIP"
+path: "/app/data/experiments/downscaling-CMIP-CMIP_factor2"
 path_to_elevation: "/app/data/elevation.nc"
 
 # Available areas: 

@@ -16,7 +16,7 @@ from src.climate_learn import (IterDataModule, LitModule,
 
 torch.set_float32_matmul_precision("medium")
 
-@hydra.main(config_path=os.path.join(os.getcwd(), "configs/train"), config_name="cmip6-era5-d")
+@hydra.main(config_path=os.path.join(os.getcwd(), "../../configs/train"), config_name="cmip6-era5")
 def main(cfg: DictConfig):
     # Construct dynamic experiment name
     experiment_name = construct_experiment_name(cfg)
