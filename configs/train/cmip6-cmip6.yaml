@@ -1,6 +1,8 @@
 base_dir: "/app/data/experiments/downscaling-CMIP-CMIP_factor2"
+base_dir: "/app/data/experiments/downscaling-CMIP-CMIP_factor2"
 
 data:
+  low_res_dir: "/app/data/processed/cmip6-cmip6/LR_factor2"
   low_res_dir: "/app/data/processed/cmip6-cmip6/LR_factor2"
   high_res_dir: "/app/data/processed/cmip6-cmip6/HR"
   subsample: 1
@@ -20,9 +22,10 @@ data:
 model:
   # Model architecture options: "resnet", "unet", "vit", "ynet", "deepsd", "hat", "esrgan", "diffusion", "edrn"
   architecture: "deepsd"
+  architecture: "unet"
   # Upsampling method options: "bilinear", "bicubic", "unet_upsampling", "unet_upsampling_bilinear", "none"
   # NOTE: Some models (ynet, deepsd, diffusion, dcgan, edrn) do not support input upsampling, so they need this parameter set "none"
-  upsampling: "none"
+  upsampling: "bilinear"
 
 training:
   summary_depth: 1
@@ -41,6 +44,7 @@ training:
     content: "mse"      #content loss
   # GPU devices to use (e.g., [0] for single GPU, [0, 1] for multiple GPUs)
   gpus: [5]
+  gpus: [4]
   checkpoint: null
   # Early stopping configuration
   early_stopping: "val/mse:aggregate"

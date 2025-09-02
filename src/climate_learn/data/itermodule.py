@@ -98,7 +98,7 @@ class IterDataModule(pl.LightningDataModule):
         self.data_train: Optional[IterableDataset] = None
         self.data_val: Optional[IterableDataset] = None
         self.data_test: Optional[IterableDataset] = None
-        
+
         # if os.path.isfile(os.path.join(self.hparams.inp_root_dir, "mask.npy")):
         #     self.in_mask = torch.from_numpy(
         #         np.load(os.path.join(self.hparams.inp_root_dir, "mask.npy"))
@@ -107,7 +107,7 @@ class IterDataModule(pl.LightningDataModule):
             self.out_mask = torch.from_numpy(
                 np.load(os.path.join(self.hparams.out_root_dir, "mask.npy"))
             )
-        
+
     def get_lat_lon(self):
         lat = np.load(os.path.join(self.hparams.out_root_dir, "lat.npy"))
         lon = np.load(os.path.join(self.hparams.out_root_dir, "lon.npy"))
@@ -120,10 +120,14 @@ class IterDataModule(pl.LightningDataModule):
         return self.hparams.in_vars, out_vars
 
     def get_data_dims(self):
-        in_lat = len(np.load(os.path.join(self.hparams.inp_root_dir, "lat.npy")))
-        in_lon = len(np.load(os.path.join(self.hparams.inp_root_dir, "lon.npy")))
-        out_lat = len(np.load(os.path.join(self.hparams.out_root_dir, "lat.npy")))
-        out_lon = len(np.load(os.path.join(self.hparams.out_root_dir, "lon.npy")))
+        in_lat = len(np.load(os.path.join(
+            self.hparams.inp_root_dir, "lat.npy")))
+        in_lon = len(np.load(os.path.join(
+            self.hparams.inp_root_dir, "lon.npy")))
+        out_lat = len(np.load(os.path.join(
+            self.hparams.out_root_dir, "lat.npy")))
+        out_lon = len(np.load(os.path.join(
+            self.hparams.out_root_dir, "lon.npy")))
         forecasting_tasks = [
             "direct-forecasting",
             "iterative-forecasting",
@@ -135,26 +139,31 @@ class IterDataModule(pl.LightningDataModule):
                     self.hparams.batch_size,
                     self.hparams.history,
                     len(self.hparams.in_vars),
-                    in_lat,                           ### DT modified
+                    in_lat,  # DT modified
                     in_lon,
                 ]
             )
         elif self.hparams.task == "downscaling":
             in_size = torch.Size(
-                [self.hparams.batch_size, len(self.hparams.in_vars), in_lat, in_lon]
+                [self.hparams.batch_size, len(
+                    self.hparams.in_vars), in_lat, in_lon]
             )
-        ##TODO: change out size
+        # TODO: change out size
         out_vars = copy.deepcopy(self.hparams.out_vars)
         if "2m_temperature_extreme_mask" in out_vars:
             out_vars.remove("2m_temperature_extreme_mask")
-        out_size = torch.Size([self.hparams.batch_size, len(out_vars), out_lat, out_lon])
+        out_size = torch.Size(
+            [self.hparams.batch_size, len(out_vars), out_lat, out_lon])
         return in_size, out_size
-   
+
     def get_normalize(self, root_dir, variables):
-        normalize_mean = dict(np.load(os.path.join(root_dir, "normalize_mean.npz")))
-        normalize_std = dict(np.load(os.path.join(root_dir, "normalize_std.npz")))
+        normalize_mean = dict(
+            np.load(os.path.join(root_dir, "normalize_mean.npz")))
+        normalize_std = dict(
+            np.load(os.path.join(root_dir, "normalize_std.npz")))
         return {
-            var: transforms.Normalize(normalize_mean[var][0], normalize_std[var][0])
+            var: transforms.Normalize(
+                normalize_mean[var][0], normalize_std[var][0])
             for var in variables
         }
 
@@ -166,9 +175,9 @@ class IterDataModule(pl.LightningDataModule):
             out_transforms[key] = self.output_transforms[key]
         return out_transforms
 
-
     def get_climatology(self, split="val"):
-        path = os.path.join(self.hparams.out_root_dir, split, "climatology.npz")
+        path = os.path.join(self.hparams.out_root_dir,
+                            split, "climatology.npz")
         clim_dict = np.load(path)
         new_clim_dict = {}
         for var in self.hparams.out_vars:
@@ -178,8 +187,7 @@ class IterDataModule(pl.LightningDataModule):
                 np.squeeze(clim_dict[var].astype(np.float32), axis=0)
             )
         return new_clim_dict
-    
-    
+
     def setup(self, stage: Optional[str] = None):
         # load datasets only if they're not loaded already
         if stage != "test":
@@ -234,6 +242,23 @@ class IterDataModule(pl.LightningDataModule):
                     output_transforms=self.output_transforms,
                     subsample=self.hparams.subsample,
                 )
+
+                self.data_train_ens = IndividualDataIter(
+                    self.dataset_caller(
+                        NpyReader(
+                            inp_file_list=self.inp_lister_train,
+                            out_file_list=self.out_lister_train,
+                            variables=self.hparams.in_vars,
+                            out_variables=self.hparams.out_vars,
+                            shuffle=False,
+                        ),
+                        **self.dataset_arg,
+                    ),
+                    transforms=self.transforms,
+                    output_transforms=self.output_transforms,
+                    subsample=self.hparams.subsample,
+                )
+    
         else:
             self.data_test = IndividualDataIter(
                 self.dataset_caller(
@@ -251,7 +276,6 @@ class IterDataModule(pl.LightningDataModule):
                 subsample=self.hparams.subsample,
             )
 
-        
     def train_dataloader(self):
         return DataLoader(
             self.data_train,
@@ -283,7 +307,18 @@ class IterDataModule(pl.LightningDataModule):
             pin_memory=self.hparams.pin_memory,
             collate_fn=self.collate_fn,
         )
-        
+    
+    def predict_dataloader(self):
+        return DataLoader(
+            self.data_train_ens,
+            batch_size=self.hparams.batch_size,
+            shuffle=False,
+            drop_last=False,
+            num_workers=self.hparams.num_workers,
+            pin_memory=self.hparams.pin_memory,
+            collate_fn=self.collate_fn,
+        )
+
 
 def collate_fn(batch):
     def handle_dict_features(t: Dict[str, torch.tensor]) -> torch.tensor:
@@ -292,7 +327,8 @@ def collate_fn(batch):
             return torch.transpose(t, 0, 1)
         return t
 
-    inp = torch.stack([handle_dict_features(batch[i][0]) for i in range(len(batch))])
+    inp = torch.stack([handle_dict_features(batch[i][0])
+                      for i in range(len(batch))])
     has_extreme_mask = False
     for key in batch[0][1]:
         if key == "2m_temperature_extreme_mask":
@@ -332,8 +368,10 @@ def collate_fn_continuous(batch):
             return torch.transpose(t, 0, 1)
         return t
 
-    inp = torch.stack([handle_dict_features(batch[i][0]) for i in range(len(batch))])
-    out = torch.stack([handle_dict_features(batch[i][1]) for i in range(len(batch))])
+    inp = torch.stack([handle_dict_features(batch[i][0])
+                      for i in range(len(batch))])
+    out = torch.stack([handle_dict_features(batch[i][1])
+                      for i in range(len(batch))])
     lead_times = torch.stack([batch[i][2] for i in range(len(batch))])
     b, t, _, h, w = inp.shape
     lead_times = lead_times.reshape(b, 1, 1, 1, 1).repeat(1, t, 1, h, w)

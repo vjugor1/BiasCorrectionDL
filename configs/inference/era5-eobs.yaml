@@ -1,12 +1,19 @@
 task: era5-eobs
 path: "/app/data/experiments/downscaling-ERA-EOBS_factor8"
+path: "/app/data/experiments/downscaling-ERA-EOBS_factor8"
 path_to_elevation: "/app/data/elevation.nc"
 
 # Available areas: "Europe"
 area: "Europe"
 
 time_stamp: 500
-models: ["resnet", "unet", "deepsd", "ynet", "edrn" ,  "esrgan", "vit",  "hat", "diffusion"] 
+models: [
+  #"resnet",
+  "unet",
+  #"deepsd", "ynet", "edrn" ,  "esrgan",
+  "vit",
+  #"hat",
+  "diffusion"] 
 seeds: [42, 123, 777]
 
 metrics: [
@@ -34,39 +41,39 @@ zoom_plot: "prediction"
 # Pay attention it should include any .ckpt file
 unet:
   - upsampling: "bilinear"
-  - versions: [0,0,0]
+  - versions: [2,0,0]
 
-resnet:
-  - upsampling: "bilinear"
-  - versions: [0,0,0]
+# resnet:
+#   - upsampling: "bilinear"
+#   - versions: [0,0,0]
 
-ynet:
-  - upsampling: "none"
-  - versions: [0,0,0]
+# ynet:
+#   - upsampling: "none"
+#   - versions: [0,0,0]
 
 vit:
   - upsampling: "bilinear"
   - versions: [0,0,0]
 
-deepsd:
-  - upsampling: "none"
-  - versions: [0,0,0]
+# deepsd:
+#   - upsampling: "none"
+#   - versions: [0,0,0]
 
-edrn:
-  - upsampling: "none"
-  - versions: [0,0,0]
+# edrn:
+#   - upsampling: "none"
+#   - versions: [0,0,0]
 
 diffusion:
   - upsampling: "none"
-  - versions: [0,5,0]
+  - versions: [0,1,2]
 
-dcgan:
-  - upsampling: "none"
-  - versions: [0,1,0]
+# dcgan:
+#   - upsampling: "none"
+#   - versions: [0,1,0]
 
-esrgan:
-  - upsampling: "none"
-  - versions: [0,3,0]
+# esrgan:
+#   - upsampling: "none"
+#   - versions: [0,3,0]
 
 hat:
   - upsampling: "none"

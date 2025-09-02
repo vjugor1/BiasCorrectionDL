@@ -7,7 +7,16 @@ path_to_elevation: "/app/data/elevation.nc"
 area: "Australia"
 
 time_stamp: 104
-models: ["resnet", "unet", "deepsd", "ynet", "edrn", "vit",  "hat",  "esrgan", "diffusion"]
+models: [
+  "resnet",
+  "unet",
+  # "deepsd",
+  "ynet",
+  # "edrn",
+  "vit", 
+  "hat", 
+  "esrgan",
+  "diffusion"]
 seeds: [42, 123, 777]
 
 metrics: [
@@ -45,21 +54,21 @@ vit:
   - upsampling: "bilinear"
   - versions: [0,0,0]
 
-deepsd:
-  - upsampling: "none"
-  - versions: [0,0,0]
+# deepsd:
+#   - upsampling: "none"
+#   - versions: [0,0,0]
 
-edrn:
-  - upsampling: "none"
-  - versions: [1,0,0]
+# edrn:
+#   - upsampling: "none"
+#   - versions: [1,0,0]
 
 diffusion:
   - upsampling: "none"
   - versions: [0,0,0]
 
-dcgan:
-  - upsampling: "none"
-  - versions: [0,1,2]
+# dcgan:
+#   - upsampling: "none"
+#   - versions: [0,1,2]
 
 esrgan:
   - upsampling: "none"
