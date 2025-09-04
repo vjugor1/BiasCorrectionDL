@@ -8,15 +8,16 @@ area: "Australia"
 
 time_stamp: 104
 models: [
-  "resnet",
+  ##"resnet",
   "unet",
   # "deepsd",
-  "ynet",
+  ##"ynet",
   # "edrn",
-  "vit", 
-  "hat", 
-  "esrgan",
-  "diffusion"]
+  ## "vit", 
+  ## "hat", 
+  ## "esrgan",
+  ## "diffusion"
+  ]
 seeds: [42, 123, 777]
 
 metrics: [
@@ -25,7 +26,9 @@ metrics: [
     'test/SSIM:air_temperature', 'test/SSIM:u_component_of_wind', 'test/SSIM:v_component_of_wind', 'test/SSIM:precipitation',
     'test/rmse:air_temperature', 'test/rmse:u_component_of_wind', 'test/rmse:v_component_of_wind', 'test/rmse:precipitation',
     'test/pearson:air_temperature', 'test/pearson:u_component_of_wind', 'test/pearson:v_component_of_wind', 'test/pearson:precipitation',
-    'test/mean_bias:air_temperature', 'test/mean_bias:u_component_of_wind', 'test/mean_bias:v_component_of_wind', 'test/mean_bias:precipitation'
+    'test/mean_bias:air_temperature', 'test/mean_bias:u_component_of_wind', 'test/mean_bias:v_component_of_wind', 'test/mean_bias:precipitation',
+    'test/spread_skill_ratio:air_temperature', 'test/spread_skill_ratio:u_component_of_wind', 'test/spread_skill_ratio:v_component_of_wind', 'test/spread_skill_ratio:precipitation',
+    'test/spread_skill_ratio:aggregate'
     ]
 
 areas: {"Oman": {left: 25, right: 60, bottom: 0, top: 25},

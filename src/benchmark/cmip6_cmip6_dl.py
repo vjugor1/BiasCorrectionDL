@@ -76,6 +76,7 @@ def main(cfg: DictConfig):
                 val_loss=None,
                 test_loss=model.test_loss,
                 test_target_transforms=model.test_target_transforms,
+                test_in_transform=add_iid_gaussian # Это жесткий хардкод, надо потом исправить
             )
         elif cfg.model.architecture == "ynet":
             normalized_clim = prepare_ynet_climatology(dm, path_to_elevation, out_vars)
@@ -90,6 +91,7 @@ def main(cfg: DictConfig):
                 test_loss=model.test_loss,
                 test_target_transforms=model.test_target_transforms,
                 x_aux = normalized_clim,
+                test_in_transform=add_iid_gaussian # Это жесткий хардкод, надо потом исправить
             )
         elif cfg.model.architecture == "deepsd":
             elevation_list = prepare_deepsd_elevation(dm, path_to_elevation)
@@ -130,9 +132,10 @@ def main(cfg: DictConfig):
                 val_loss=None,
                 test_loss=model.test_loss,
                 test_target_transforms=model.test_target_transforms,
+                test_in_transform=add_iid_gaussian # Это жесткий хардкод, надо потом исправить
             )
         else:
-            model = LitModule.load_from_checkpoint(
+            model_module = LitModule.load_from_checkpoint(
                 cfg.training.checkpoint,
                 net=model.net,
                 optimizer=model.optimizer,
@@ -141,9 +144,10 @@ def main(cfg: DictConfig):
                 val_loss=None,
                 test_loss=model.test_loss,
                 test_target_transforms=model.test_target_transforms,
+                test_in_transform=add_iid_gaussian # Это жесткий хардкод, надо потом исправить
             )
 
-        trainer.test(model, datamodule=dm)
+        trainer.test(model_module, datamodule=dm)
 
 def construct_experiment_name(config):
     architecture = config.model.architecture
