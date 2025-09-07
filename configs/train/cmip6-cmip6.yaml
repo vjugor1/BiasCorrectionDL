@@ -1,10 +1,10 @@
-base_dir: "/app/data/experiments/downscaling-CMIP-CMIP_factor2"
+base_dir: "/app/data/experiments/downscaling-CMIP-CMIP_factor4_ens"
 
 data:
-  low_res_dir: "/app/data/processed/cmip6-cmip6/LR_factor2"
-  high_res_dir: "/app/data/processed/cmip6-cmip6/HR"
+  low_res_dir: "/app/data/processed/cmip6-cmip6/LR_factor4_ens"
+  high_res_dir: "/app/data/processed/cmip6-cmip6/HR_ens"
   subsample: 1
-  batch_size: 2
+  batch_size: 4
   buffer_size: 2000
   num_workers: 2
   # Available variables: 
@@ -33,14 +33,14 @@ training:
   betas: [0.9, 0.99]
   warmup_epochs: 5
   train_loss: ["mse"]
-  add_input_noise: True # whether to add random distribution to each variable input
+  add_input_noise: False # whether to add random distribution to each variable input
   perceptual_hp:        #works only with single gpu; total loss is content(pred,target) + feature_coeff * feature_loss + gram_coeff * gram_loss
     feature_coeff: 0.01 #coefficient before \| phi_{relu_n}(pred) - phi_{relu_n}(target)) \|_2^2
     gram_coeff: 0.01    #coefficient before \| phi_{relu_n}(pred) \cdot phi_{relu_n}(pred)^T - phi_{relu_n}(target) \cdot phi_{relu_n}(target)^T \|_F^2
     relu_n: 2           #which conv-relu block number to get. the lower - the finer features are extracted, the higher - the more abstract
     content: "mse"      #content loss
   # GPU devices to use (e.g., [0] for single GPU, [0, 1] for multiple GPUs)
-  gpus: [5]
+  gpus: [0]
   checkpoint: null
   # Early stopping configuration
   early_stopping: "val/mse:aggregate"

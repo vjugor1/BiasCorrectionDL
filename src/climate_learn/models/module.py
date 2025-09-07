@@ -201,15 +201,6 @@ class LitModule(pl.LightningModule):
             for var_idx, var_name in enumerate(out_variables):
                 loss_dict[f"{stage}/spread_skill_ratio:{var_name}"] = spread_skill[var_idx]
             loss_dict[f"{stage}/spread_skill_ratio:aggregate"] = spread_skill.mean()
-            print()
-            print()
-            print()
-            print('spread_skill_ratio')
-            print()
-            print()
-            print()
-            print()
-
 
         self.log_dict(
         loss_dict,
@@ -302,7 +293,7 @@ class DiffusionLitModule(LitModule):
         test_target_transforms: Optional[List[Union[Callable, None]]] = None,
     ):
         super().__init__(net, optimizer, lr_scheduler,
-                         train_loss, val_loss, test_loss,
+                         train_loss, val_loss, test_loss, test_in_transform,
                          train_target_transform, val_target_transforms,
                          test_target_transforms)
         #upscaler in net

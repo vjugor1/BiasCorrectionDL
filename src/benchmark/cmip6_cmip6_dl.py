@@ -61,6 +61,7 @@ def main(cfg: DictConfig):
         pass
     # Train and evaluate model from scratch
     if cfg.training.checkpoint is None:
+        pass
         trainer.fit(model, datamodule=dm)
         trainer.test(model, datamodule=dm, ckpt_path="best")
         
@@ -76,7 +77,7 @@ def main(cfg: DictConfig):
                 val_loss=None,
                 test_loss=model.test_loss,
                 test_target_transforms=model.test_target_transforms,
-                test_in_transform=add_iid_gaussian # Это жесткий хардкод, надо потом исправить
+                test_in_transform=add_iid_gaussian if cfg.training.add_input_noise==True else None
             )
         elif cfg.model.architecture == "ynet":
             normalized_clim = prepare_ynet_climatology(dm, path_to_elevation, out_vars)
@@ -91,7 +92,7 @@ def main(cfg: DictConfig):
                 test_loss=model.test_loss,
                 test_target_transforms=model.test_target_transforms,
                 x_aux = normalized_clim,
-                test_in_transform=add_iid_gaussian # Это жесткий хардкод, надо потом исправить
+                test_in_transform=add_iid_gaussian if cfg.training.add_input_noise==True else None
             )
         elif cfg.model.architecture == "deepsd":
             elevation_list = prepare_deepsd_elevation(dm, path_to_elevation)
@@ -132,7 +133,7 @@ def main(cfg: DictConfig):
                 val_loss=None,
                 test_loss=model.test_loss,
                 test_target_transforms=model.test_target_transforms,
-                test_in_transform=add_iid_gaussian # Это жесткий хардкод, надо потом исправить
+                test_in_transform=add_iid_gaussian if cfg.training.add_input_noise==True else None
             )
         else:
             model_module = LitModule.load_from_checkpoint(
@@ -144,7 +145,7 @@ def main(cfg: DictConfig):
                 val_loss=None,
                 test_loss=model.test_loss,
                 test_target_transforms=model.test_target_transforms,
-                test_in_transform=add_iid_gaussian # Это жесткий хардкод, надо потом исправить
+                test_in_transform=add_iid_gaussian if cfg.training.add_input_noise==True else None
             )
 
         trainer.test(model_module, datamodule=dm)
@@ -194,7 +195,7 @@ def setup_model(dm, config):
         },
         train_loss=tuple(config.training.train_loss) if len(config.training.train_loss) > 1 else str(config.training.train_loss[0]),
         train_loss_kwargs=config.training.perceptual_hp,
-        test_in_transform=add_iid_gaussian if config.training.add_input_noise==True else None 
+        test_in_transform=None
     )
     return model
 

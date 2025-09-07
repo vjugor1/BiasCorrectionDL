@@ -10,7 +10,7 @@ import pandas as pd
 import pickle
 
 CONFIG_NAME = "cmip6-cmip6"
-CONFIG_NAME_INFERENCE = "cmip6-cmip6_factor2"
+CONFIG_NAME_INFERENCE = "cmip6-cmip6_factor4"
 
 if CONFIG_NAME == "cmip6-cmip6":
     from cmip6_cmip6_dl import main
@@ -85,16 +85,16 @@ def save_metrics():
                 df_seed.at[m, model] = row.loc[0]["value"]
         
         # Save df with metrics of current seed
-        df_seed.to_pickle(os.path.join(cfg.path, "plots", f"metrics_{seed}_gauss_02.pkl"))
+        df_seed.to_pickle(os.path.join(cfg.path, "plots", f"metrics_{seed}_gauss_06.pkl"))
     
     # # Average over all seeds
     for i, seed in enumerate(cfg.seeds):
-        df_seed = pd.read_pickle(os.path.join(cfg.path, "plots", f"metrics_{seed}_gauss_02.pkl"))
+        df_seed = pd.read_pickle(os.path.join(cfg.path, "plots", f"metrics_{seed}_gauss_06.pkl"))
         df = pd.concat([df, df_seed])
 
     # # Save averaged values
     df_avg = df.groupby(level=0).mean()
-    df_avg.to_pickle(os.path.join(cfg.path, "plots", f"metrics_avg_gauss_02.pkl"))
+    df_avg.to_pickle(os.path.join(cfg.path, "plots", f"metrics_avg_gauss_06.pkl"))
 
     
 if __name__ == "__main__":

@@ -13,7 +13,7 @@ def add_iid_gaussian(X: torch.Tensor,
                         "soil_type", "angle_of_sub_gridscale_orography"
                         ],
                     K: int = 10, 
-                    sigma_per_channel: float = 0.02,
+                    sigma_per_channel: float = 0.06,
                     g=None):
     """
     X input data of size [B,C,H,W], 
