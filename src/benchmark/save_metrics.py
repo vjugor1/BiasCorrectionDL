@@ -4,7 +4,7 @@ import sys
 sys.path.append('/app')
 import hydra
 from hydra import compose, initialize
-import glob 
+import glob
 from tensorboard.backend.event_processing import event_accumulator
 import pandas as pd
 import pickle
@@ -45,7 +45,7 @@ def parse_tensorboard(path: str,
 
                         
 def save_metrics():
-    path = cfg.path   
+    path = cfg.path
     models = cfg.models
     metrics = cfg.metrics
     
@@ -96,6 +96,6 @@ def save_metrics():
     df_avg = df.groupby(level=0).mean()
     df_avg.to_pickle(os.path.join(cfg.path, "plots", f"metrics_avg_gauss_06.pkl"))
 
-    
+
 if __name__ == "__main__":
     save_metrics()

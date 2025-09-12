@@ -12,6 +12,7 @@ from pytorch_lightning.callbacks import (EarlyStopping, LearningRateMonitor,
 from pytorch_lightning.loggers.tensorboard import TensorBoardLogger
 import pytorch_lightning as pl
 
+sys.path.insert(0, '../../src')
 from src.climate_learn import (IterDataModule, LitModule,
                                DiffusionLitModule, DeepSDLitModule,
                                YnetLitModule, GANLitModule, ESRGANLitModule,
@@ -61,7 +62,6 @@ def main(cfg: DictConfig):
         pass
     # Train and evaluate model from scratch
     if cfg.training.checkpoint is None:
-        pass
         trainer.fit(model, datamodule=dm)
         trainer.test(model, datamodule=dm, ckpt_path="best")
         

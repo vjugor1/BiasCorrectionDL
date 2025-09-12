@@ -1,37 +1,38 @@
-base_dir: "/app/data/experiments/downscaling-CMIP-CMIP_factor4_ens"
+base_dir: "/app/data/experiments/downscaling-CMIP-CMIP_factor2_ens"
 
 data:
-  low_res_dir: "/app/data/processed/cmip6-cmip6/LR_factor4_ens"
+  low_res_dir: "/app/data/processed/cmip6-cmip6/HR_preds_factor2_ens"
   high_res_dir: "/app/data/processed/cmip6-cmip6/HR_ens"
   subsample: 1
-  batch_size: 4
+  batch_size: 7
   buffer_size: 2000
   num_workers: 2
   # Available variables: 
   # "air_temperature", "u_component_of_wind", "v_component_of_wind", "surface_pressure", "precipitation", "orography", "land_sea_mask", "latitude", "specific_humidity", "cloud_cover", "upward_heat_flux", "moisture_in_soil"
   # "air_temperature", "u_component_of_wind", "v_component_of_wind", "precipitation", "pressure_sea_level", "specific_humidity", "cloud_cover", "upward_heat_flux", "moisture_in_soil"
-  in_variables: ["air_temperature", "u_component_of_wind", "v_component_of_wind", "precipitation", "pressure_sea_level",
-                  "specific_humidity", "cloud_cover", "upward_heat_flux", "moisture_in_soil",
-                  "geopotential_at_surface", "land_sea_mask", "latitude", "standard_deviation_of_orography",
-                  "standard_deviation_of_filtered_subgrid_orography", "soil_type", "angle_of_sub_gridscale_orography"]
+  in_variables: ["unet_42", "vit_42", "hat_42"] #, "diffusion_42"]
+  # ["air_temperature", "u_component_of_wind", "v_component_of_wind", "precipitation", "pressure_sea_level",
+  #                 "specific_humidity", "cloud_cover", "upward_heat_flux", "moisture_in_soil",
+  #                 "geopotential_at_surface", "land_sea_mask", "latitude", "standard_deviation_of_orography",
+  #                 "standard_deviation_of_filtered_subgrid_orography", "soil_type", "angle_of_sub_gridscale_orography"]
   # Output variables to predict. Options are: "2m_temperature", "10m_u_component_of_wind", "10m_v_component_of_wind", "surface_pressure", "total_precipitation"
   out_variables: ["air_temperature", "u_component_of_wind", "v_component_of_wind", "precipitation"]
 
 model:
   # Model architecture options: "resnet", "unet", "vit", "ynet", "deepsd", "hat", "esrgan", "diffusion", "edrn"
-  architecture: "unet"
+  architecture: "avg_ensemble"
   # Upsampling method options: "bilinear", "bicubic", "unet_upsampling", "unet_upsampling_bilinear", "none"
   # NOTE: Some models (ynet, deepsd, diffusion, dcgan, edrn) do not support input upsampling, so they need this parameter set "none"
-  upsampling: "bilinear"
+  upsampling: "none"
 
 training:
   summary_depth: 1
-  max_epochs: 200
+  max_epochs: 1
   patience: 15
-  learning_rate: 3e-4
+  learning_rate: 0.001
   weight_decay: 1e-5
   betas: [0.9, 0.99]
-  warmup_epochs: 5
+  warmup_epochs: 1
   train_loss: ["mse"]
   add_input_noise: False # whether to add random distribution to each variable input
   perceptual_hp:        #works only with single gpu; total loss is content(pred,target) + feature_coeff * feature_loss + gram_coeff * gram_loss

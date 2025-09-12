@@ -24,7 +24,9 @@ from ..models.hub import (
     DCGAN,
     EDRN,
     ESRGAN,
-    HAT
+    HAT,
+    ConvEnsemble,
+    AvgEnsemble
     
 )
 from ..models.lr_scheduler import LinearWarmupCosineAnnealingLR
@@ -525,6 +527,10 @@ def load_architecture(task, data_module, architecture, upsampling,
                     out_channels,
                     scale=out_width // in_width,
                 )
+            elif architecture == "conv_ensemble":
+                backbone = ConvEnsemble()
+            elif architecture == "avg_ensemble":
+                backbone = AvgEnsemble()
             else:
                 raise_not_impl()
             if upsampling is None or upsampling.lower() == "none":
@@ -571,6 +577,18 @@ def load_architecture(task, data_module, architecture, upsampling,
                                                 )
                 lr_scheduler = (lr_schedulerG, lr_schedulerD)
                 
+            elif architecture == "conv_ensemble":
+                optimizer = load_optimizer(
+                model, "adamw",
+                optim_kwargs
+                )
+
+                lr_scheduler = load_lr_scheduler(
+                    "exponential",
+                    optimizer,
+                    {'gamma': 0.5}
+                )
+
             else:
                 optimizer = load_optimizer(
                 model, "adamw",

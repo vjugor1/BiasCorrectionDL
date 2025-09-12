@@ -1,0 +1,13 @@
+class AnsembleDataModule(pl.LightningDataModule):
+    def __init__(
+            self,
+            inp_root_dir,
+            out_root_dir,
+            input_models,
+        ):
+        super().__init__()
+        self.collate_fn = ...
+        self.out_lister_train = sorted(
+            glob.glob(os.path.join(out_root_dir, "train", "*.npz"))
+        )
+    
