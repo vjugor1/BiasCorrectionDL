@@ -1,0 +1,54 @@
+task: cmip6-cmip6
+path: "/app/data/experiments/downscaling-CMIP-CMIP_factor4_ens"
+path_to_elevation: "/app/data/elevation.nc"
+
+# Available areas: 
+# "world", "Oman", "SEAsia", "S_USA", "Australia"
+area: "Australia"
+
+time_stamp: 104
+models: ["conv_ensemble", "avg_ensemble"] #, "unet", "vit",  "hat", "diffusion"]
+seeds: [42] #, 123, 777]
+
+metrics: [
+    'test/lat_PSNR:air_temperature', 'test/lat_PSNR:u_component_of_wind', 'test/lat_PSNR:v_component_of_wind', 'test/lat_PSNR:precipitation',
+    'test/SSIM:air_temperature', 'test/SSIM:u_component_of_wind', 'test/SSIM:v_component_of_wind', 'test/SSIM:precipitation',
+    'test/lat_rmse:air_temperature', 'test/lat_rmse:u_component_of_wind', 'test/lat_rmse:v_component_of_wind', 'test/lat_rmse:precipitation',
+    'test/pearson:air_temperature', 'test/pearson:u_component_of_wind', 'test/pearson:v_component_of_wind', 'test/pearson:precipitation',
+    'test/lat_mean_bias:air_temperature', 'test/lat_mean_bias:u_component_of_wind', 'test/lat_mean_bias:v_component_of_wind', 'test/lat_mean_bias:precipitation',
+    ]
+
+areas: {"Oman": {left: 25, right: 60, bottom: 0, top: 25},
+      "SEAsia": {left: 80, right: 170, bottom: -25, top: 20},
+      "S_USA": {left: 250, right: 310, bottom: 0, top: 25},
+      "Australia": {left: 110, right: 160, bottom: -45, top: -10}}
+
+# Available optionones are "air_temperature", "u_component_of_wind", "v_component_of_wind", "precipitation"]
+plot_variables: ["u_component_of_wind", "precipitation"]
+
+# Lists below define the desired versions of the model corresponding to seeds list.
+# Pay attention it should include any .ckpt file
+unet:
+  - upsampling: "bilinear"
+  - versions: [0]
+
+vit:
+  - upsampling: "bilinear"
+  - versions: [0]
+
+hat:
+  - upsampling: "none"
+  - versions: [0]
+
+diffusion:
+  - upsampling: "none"
+  - versions: [0]
+
+avg_ensemble:
+  - upsampling: "none"
+  - versions: [0]
+
+conv_ensemble:
+  - upsampling: "none"
+  - versions: [0]
+

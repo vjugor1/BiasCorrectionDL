@@ -95,7 +95,7 @@ def save_metrics():
 
     # # Save averaged values
     df_avg = df.groupby(level=0).mean()
-    df_avg.to_pickle(os.path.join(cfg.path, "plots", f"metrics_avg_hat.pkl"))
+    df_avg.to_pickle(os.path.join(cfg.path, "plots", f"metrics_avg_gauss.pkl"))
 
     
 if __name__ == "__main__":

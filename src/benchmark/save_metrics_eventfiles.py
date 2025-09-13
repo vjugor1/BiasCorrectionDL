@@ -19,7 +19,7 @@ def parse_tensorboard(path: str,
         size_guidance={event_accumulator.SCALARS: 0},
     )
     _absorb_print = ea.Reload()
-    
+
     # make sure the scalars are in the event accumulator tags
     assert all(
             s in ea.Tags()["scalars"] for s in scalars
@@ -27,7 +27,7 @@ def parse_tensorboard(path: str,
     return {k: pd.DataFrame(ea.Scalars(k)) for k in scalars}
 
 
-@hydra.main(config_path="/app/configs/inference", config_name="cmip6-cmip6", version_base = None)
+@hydra.main(config_path="/app/configs/inference", config_name="cmip6-cmip6_ens", version_base = None)
 def save_metrics(cfg: DictConfig):
     path = cfg.path    
     models = cfg.models
@@ -46,6 +46,7 @@ def save_metrics(cfg: DictConfig):
             event_dir = os.path.join(path, f"{model}_multi_{cfg[model][0].upsampling}_{seed}/logs/lightning_logs/version_{version}")
             event_files = glob.glob(event_dir+"/events*.*")
             event_files.sort(key=lambda x: os.path.getmtime(x))
+            print(event_dir)
             metric_dict = parse_tensorboard(os.path.join(event_dir, event_files[-1]), metrics)
             
             for m in metrics: 
@@ -54,16 +55,16 @@ def save_metrics(cfg: DictConfig):
                 df_seed.at[m, model] = row.loc[0]["value"]
         
         # Save df with metrics of current seed
-        df_seed.to_pickle(os.path.join(cfg.path, "plots", f"metrics_{seed}.pkl"))
+        df_seed.to_pickle(os.path.join(cfg.path, "plots", f"metrics_{seed}_temp.pkl"))
     
     # Average over all seeds
     for i, seed in enumerate(cfg.seeds):
-        df_seed = pd.read_pickle(os.path.join(cfg.path, "plots", f"metrics_{seed}.pkl"))
+        df_seed = pd.read_pickle(os.path.join(cfg.path, "plots", f"metrics_{seed}_temp.pkl"))
         df = pd.concat([df, df_seed])
 
     # Save averaged values
     df_avg = df.groupby(level=0).mean()
-    df_avg.to_pickle(os.path.join(cfg.path, "plots", f"metrics_avg.pkl"))
+    df_avg.to_pickle(os.path.join(cfg.path, "plots", f"metrics_avg_temp.pkl"))
 
     
 if __name__ == "__main__":
