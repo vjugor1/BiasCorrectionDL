@@ -15,3 +15,5 @@ from .gan import DCGAN
 from .edrn import EDRN
 from .esr_gan import ESRGAN
 from .hat import HAT
+from .conv_ensemble import ConvEnsemble
+from .avg_ensemble import AvgEnsemble

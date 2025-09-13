@@ -118,6 +118,24 @@ class LitModule(pl.LightningModule):
         if self.mode == "iter":
             self.evaluate_iter(batch, self.n_iters, "test")
 
+    def calculate_spread_skill_ratio(self, pred_dist, target):
+        """
+        Calculate spread-skill ratio for each channel
+        pred_dist: Normal distribution with shape [B, C, H, W]
+        target: target values with shape [B, C, H, W]
+        """
+        # Calculate spread (standard deviation)
+        spread = pred_dist.scale.mean(dim=[0, 2, 3])  # Mean over batch and spatial dimensions
+        
+        # Calculate skill (RMSE)
+        error = (pred_dist.loc - target).square()
+        skill = error.mean(dim=[0, 2, 3]).sqrt()  # RMSE for each channel
+        
+        # Spread-skill ratio
+        ratio = spread / (skill + 1e-8)  # Avoid division by zero
+        
+        return ratio
+
     def evaluate(
         self, batch: Tuple[torch.Tensor, torch.Tensor, List[str], List[str], Tuple[Dict]], stage: str
     ):
@@ -163,6 +181,27 @@ class LitModule(pl.LightningModule):
                     loss_dict[f"{stage}/{loss_name}:{var_name}"] = loss
                 # Add the aggregate loss
                 loss_dict[f"{stage}/{loss_name}:aggregate"] = losses[-1]
+
+        # For ensemble predictions, calculate spread-skill ratio
+        if self.test_in_transform and stage == "test":
+            # Reshape predictions back to ensemble format [B, K, C, H, W]
+            yhat_ensemble = yhat_transformed.view(batch_size, extra_dim_size, *yhat_transformed.shape[1:])
+            
+            # Calculate mean and std across ensemble dimension
+            mean_pred = torch.mean(yhat_ensemble, dim=1)
+            std_pred = torch.std(yhat_ensemble, dim=1)
+            
+            # Create Normal distribution
+            pred_dist = torch.distributions.Normal(mean_pred, std_pred + 1e-8)  # Add small epsilon for stability
+            
+            # Calculate spread-skill ratio
+            spread_skill = self.calculate_spread_skill_ratio(pred_dist, y_transformed[:batch_size])
+            
+            # Add to loss dictionary
+            for var_idx, var_name in enumerate(out_variables):
+                loss_dict[f"{stage}/spread_skill_ratio:{var_name}"] = spread_skill[var_idx]
+            loss_dict[f"{stage}/spread_skill_ratio:aggregate"] = spread_skill.mean()
+
         self.log_dict(
         loss_dict,
         prog_bar=True,
@@ -254,7 +293,7 @@ class DiffusionLitModule(LitModule):
         test_target_transforms: Optional[List[Union[Callable, None]]] = None,
     ):
         super().__init__(net, optimizer, lr_scheduler,
-                         train_loss, val_loss, test_loss,
+                         train_loss, val_loss, test_loss, test_in_transform,
                          train_target_transform, val_target_transforms,
                          test_target_transforms)
         #upscaler in net
