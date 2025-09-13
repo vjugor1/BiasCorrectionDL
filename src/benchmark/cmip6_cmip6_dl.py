@@ -24,7 +24,7 @@ from src.climate_learn.transforms import add_iid_gaussian
 
 torch.set_float32_matmul_precision("medium")
 
-@hydra.main(config_path="../../configs/train", config_name="cmip6-cmip6")
+@hydra.main(config_path="../../configs/train", config_name="cmip6-cmip6_factor2_ens")
 def main(cfg: DictConfig):
     # Construct dynamic experiment name
     experiment_name = construct_experiment_name(cfg)

@@ -17,5 +17,4 @@ class AvgEnsemble(nn.Module):
         self.dummy_param = nn.Parameter(torch.tensor(1.0), requires_grad=True)
     
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        print(x.shape)
-        return x[:, :, 0, :, :] * (self.dummy_param * 0 + 1)
+        return x.mean(dim=2) * (self.dummy_param * 0 + 1)

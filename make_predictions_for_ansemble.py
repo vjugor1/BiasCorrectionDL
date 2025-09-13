@@ -23,7 +23,7 @@ test_ens_data = {}
 i = 0
 seed = 42
 model = 'diffusion'
-device = 'cuda:4'
+device = 'cuda:3'
 
 version=cfg_inference[model][1].versions[i]
 ckpt_dir = glob.glob(os.path.join(cfg_inference.path, f"{model}_multi_{cfg_inference[model][0].upsampling}_{seed}/logs/version_{version}/checkpoints/"+"epoch_*.*"))
@@ -39,23 +39,23 @@ y_pred_train = []
 with torch.no_grad():
     for batch in tqdm.tqdm(dm.predict_dataloader()):
         x, _, _, _ = batch
-        y_pred_train.append(model_module(x.to(device)).to('cpu'))
+        y_pred_train.append(model_module(x.to(device)))
 
 y_pred_val = []
 with torch.no_grad():
     for batch in dm.val_dataloader():
         x, _, _, _ = batch
-        y_pred_val.append(model_module(x.to(device)).to('cpu'))
+        y_pred_val.append(model_module(x.to(device)))
 
 y_pred_test = []
 with torch.no_grad():
     for batch in dm.test_dataloader():
         x, _, _, _ = batch
-        y_pred_test.append(model_module(x.to(device)).to('cpu'))
+        y_pred_test.append(model_module(x.to(device)))
 
-train_ens_data[model + '_' + str(seed)] = torch.cat(y_pred_train)
-val_ens_data[model + '_' + str(seed)] = torch.cat(y_pred_val)
-test_ens_data[model + '_' + str(seed)] = torch.cat(y_pred_test)
+train_ens_data[model + '_' + str(seed)] = torch.cat(y_pred_train).to('cpu')
+val_ens_data[model + '_' + str(seed)] = torch.cat(y_pred_val).to('cpu')
+test_ens_data[model + '_' + str(seed)] = torch.cat(y_pred_test).to('cpu')
 
 print('saving train')
 with open(f'train_ens_data_factor_4_{model}_{seed}.pkl', 'wb') as f:

@@ -13,10 +13,10 @@ models: [
   # "deepsd",
   ##"ynet",
   # "edrn",
-  ## "vit", 
-  ## "hat", 
+  "vit", 
+  "hat", 
   ## "esrgan",
-  ## "diffusion"
+  "diffusion"
   ]
 seeds: [42, 123, 777]
 

@@ -12,7 +12,7 @@ models: [
    "unet",
    "vit", 
    "hat", 
-  "diffusion"
+   "diffusion"
   ]
 seeds: [42, 123, 777]
 
