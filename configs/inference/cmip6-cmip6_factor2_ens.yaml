@@ -1,5 +1,5 @@
 task: cmip6-cmip6
-path: "/app/data/experiments/downscaling-CMIP-CMIP_factor4_ens"
+path: "/app/data/experiments/downscaling-CMIP-CMIP_factor2"
 path_to_elevation: "/app/data/elevation.nc"
 
 # Available areas: 
@@ -7,8 +7,10 @@ path_to_elevation: "/app/data/elevation.nc"
 area: "Australia"
 
 time_stamp: 104
-models: ["conv_ensemble", "avg_ensemble"] #, "unet", "vit",  "hat", "diffusion"]
-seeds: [42] #, 123, 777]
+models: ["conv_ensemble", "avg_ensemble"]
+# Model architecture options: "resnet", "unet", "vit", "ynet", "deepsd", "hat", "esrgan", "diffusion", "edrn"
+models_base: ["unet"]
+seeds: [42, 123, 777]
 
 metrics: [
     'test/lat_PSNR:air_temperature', 'test/lat_PSNR:u_component_of_wind', 'test/lat_PSNR:v_component_of_wind', 'test/lat_PSNR:precipitation',
@@ -30,25 +32,49 @@ plot_variables: ["u_component_of_wind", "precipitation"]
 # Pay attention it should include any .ckpt file
 unet:
   - upsampling: "bilinear"
-  - versions: [0]
+  - versions: [0,0,0]
+
+resnet:
+  - upsampling: "bilinear"
+  - versions: [0,0,0]
+
+ynet:
+  - upsampling: "none"
+  - versions: [0,0,0]
 
 vit:
   - upsampling: "bilinear"
-  - versions: [0]
+  - versions: [0,0,0]
 
-hat:
+deepsd:
   - upsampling: "none"
-  - versions: [0]
+  - versions: [0,0,0]
+
+edrn:
+  - upsampling: "none"
+  - versions: [1,0,0]
 
 diffusion:
   - upsampling: "none"
-  - versions: [0]
+  - versions: [0,0,0]
+
+dcgan:
+  - upsampling: "none"
+  - versions: [0,1,2]
+
+esrgan:
+  - upsampling: "none"
+  - versions: [0,0,0]
+
+hat:
+  - upsampling: "none"
+  - versions: [0,0,0]
 
 avg_ensemble:
   - upsampling: "none"
-  - versions: [0]
+  - versions: [0,0,0]
 
 conv_ensemble:
   - upsampling: "none"
-  - versions: [0]
+  - versions: [0,0,0]
 
