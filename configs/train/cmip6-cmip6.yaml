@@ -4,7 +4,7 @@ data:
   low_res_dir: "/app/data/processed/cmip6-cmip6/LR_factor2"
   high_res_dir: "/app/data/processed/cmip6-cmip6/HR"
   subsample: 1
-  batch_size: 64
+  batch_size: 32
   buffer_size: 2000
   num_workers: 1
   # Available variables: 
