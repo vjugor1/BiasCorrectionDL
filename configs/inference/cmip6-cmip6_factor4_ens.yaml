@@ -1,5 +1,5 @@
 task: cmip6-cmip6
-path: "/app/data/experiments/downscaling-CMIP-CMIP_factor2_ens"
+path: "/app/data/experiments/downscaling-CMIP-CMIP_factor4_ens"
 path_to_elevation: "/app/data/elevation.nc"
 
 # Available areas: 
@@ -7,7 +7,7 @@ path_to_elevation: "/app/data/elevation.nc"
 area: "Australia"
 
 time_stamp: 104
-models: ["avg_ensemble","conv_ensemble"]
+models: ["avg_ensemble", "conv_ensemble"]
 # Model architecture options: "resnet", "unet", "vit", "ynet", "deepsd", "hat", "esrgan", "diffusion", "edrn"
 models_base: ["vit", "hat", "unet", "diffusion"]
 seeds: [42]
@@ -73,9 +73,9 @@ hat:
 
 avg_ensemble:
   - upsampling: "none"
-  - versions: [10,0,0]
+  - versions: [1,0,0]
 
 conv_ensemble:
   - upsampling: "none"
-  - versions: [5,0,0]
+  - versions: [3,0,0]
 

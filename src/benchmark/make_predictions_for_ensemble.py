@@ -26,7 +26,7 @@ test_ens_data = {}
 i=1
 models = cfg_inference.models_base
 seed = cfg_train.training.seed
-device = 'cuda:2'
+device = f'cuda:{cfg_train.training.gpus[0]}'
 
 for model in models:
     version=cfg_inference[model][1].versions[i]

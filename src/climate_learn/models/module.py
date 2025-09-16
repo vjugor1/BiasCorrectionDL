@@ -182,20 +182,20 @@ class LitModule(pl.LightningModule):
                 # Add the aggregate loss
                 loss_dict[f"{stage}/{loss_name}:aggregate"] = losses[-1]
 
-        # For ensemble predictions, calculate spread-skill ratio
-        if self.test_in_transform and stage == "test":
+        # For ensemble predictions, calculate spread-skill ratio. Not valid for single model
+        if self.test_in_transform or stage == "test":
             # Reshape predictions back to ensemble format [B, K, C, H, W]
-            yhat_ensemble = yhat_transformed.view(batch_size, extra_dim_size, *yhat_transformed.shape[1:])
+            yhat_ensemble = yhat_transformed #.view(batch_size, extra_dim_size, *yhat_transformed.shape[1:])
             
             # Calculate mean and std across ensemble dimension
-            mean_pred = torch.mean(yhat_ensemble, dim=1)
-            std_pred = torch.std(yhat_ensemble, dim=1)
+            mean_pred = torch.mean(yhat_ensemble, dim=(0,2,3), keepdim=True)
+            std_pred = torch.std(yhat_ensemble, dim=(0,2,3), keepdim=True)
             
             # Create Normal distribution
             pred_dist = torch.distributions.Normal(mean_pred, std_pred + 1e-8)  # Add small epsilon for stability
             
             # Calculate spread-skill ratio
-            spread_skill = self.calculate_spread_skill_ratio(pred_dist, y_transformed[:batch_size])
+            spread_skill = self.calculate_spread_skill_ratio(pred_dist, y_transformed) #[:batch_size])
             
             # Add to loss dictionary
             for var_idx, var_name in enumerate(out_variables):

@@ -9,10 +9,10 @@ from tensorboard.backend.event_processing import event_accumulator
 import pandas as pd
 import pickle
 
-CONFIG_NAME = "cmip6-cmip6"
-CONFIG_NAME_INFERENCE = "cmip6-cmip6_factor2"
+CONFIG_NAME = "cmip6-cmip6_factor4_ens"
+CONFIG_NAME_INFERENCE = "cmip6-cmip6_factor4_ens"
 
-if CONFIG_NAME == "cmip6-cmip6":
+if "cmip6-cmip6" in CONFIG_NAME:
     from cmip6_cmip6_dl import main
 elif CONFIG_NAME == "era5-era5":
     from era5_era5_dl import main

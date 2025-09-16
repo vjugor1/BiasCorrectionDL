@@ -7,15 +7,13 @@ data:
   batch_size: 16
   buffer_size: 2000
   num_workers: 2
-  # Available variables: 
-  # "air_temperature", "u_component_of_wind", "v_component_of_wind", "surface_pressure", "precipitation", "orography", "land_sea_mask", "latitude", "specific_humidity", "cloud_cover", "upward_heat_flux", "moisture_in_soil"
-  # "air_temperature", "u_component_of_wind", "v_component_of_wind", "precipitation", "pressure_sea_level", "specific_humidity", "cloud_cover", "upward_heat_flux", "moisture_in_soil"
+  # Available variables: architecture_seed combinations with saved model outputs (see make_predictions_for_ensemble.py)
   in_variables: ["unet_42", "vit_42", "hat_42", "diffusion_42"]
   # Output variables to predict. Options are: "2m_temperature", "10m_u_component_of_wind", "10m_v_component_of_wind", "surface_pressure", "total_precipitation"
   out_variables: ["air_temperature", "u_component_of_wind", "v_component_of_wind", "precipitation"]
 
 model:
-  # Model architecture options: "resnet", "unet", "vit", "ynet", "deepsd", "hat", "esrgan", "diffusion", "edrn"
+  # Model architecture options: "avg_ensemble", "conv_ensemble"
   architecture: "avg_ensemble"
   # Upsampling method options: "bilinear", "bicubic", "unet_upsampling", "unet_upsampling_bilinear", "none"
   # NOTE: Some models (ynet, deepsd, diffusion, dcgan, edrn) do not support input upsampling, so they need this parameter set "none"
@@ -37,7 +35,7 @@ training:
     relu_n: 2           #which conv-relu block number to get. the lower - the finer features are extracted, the higher - the more abstract
     content: "mse"      #content loss
   # GPU devices to use (e.g., [0] for single GPU, [0, 1] for multiple GPUs)
-  gpus: [2]
+  gpus: [1]
   checkpoint: null
   # Early stopping configuration
   early_stopping: "val/mse:aggregate"

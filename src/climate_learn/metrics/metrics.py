@@ -502,8 +502,36 @@ class SSIM(Metric):
         :rtype: torch.FloatTensor|torch.DoubleTensor
         """
         return ssim(pred, target, self.aggregate_only)
-    
-    
+
+
+@register("lat_spread_skill_ratio")
+class LatWeightedSpreadSkill(LatitudeWeightedMetric):
+    """Computes the spread skill ratio."""
+
+    def __call__(
+        self,
+        pred: torch.distributions.Normal,
+        target: Union[torch.FloatTensor, torch.DoubleTensor],
+    ) -> Union[torch.FloatTensor, torch.DoubleTensor]:
+        r"""
+        .. highlight:: python
+
+        :param pred: The predicted values of shape [B,C,H,W]. These should be
+            denormalized.
+        :type pred: torch.FloatTensor|torch.DoubleTensor
+        :param target: The ground truth target values of shape [B,C,H,W]. These
+            should be denormalized.
+        :type target: torch.FloatTensor|torch.DoubleTensor
+
+        :return: A singleton tensor if `self.aggregate_only` is `True`. Else, a
+            tensor of shape [C+1], where the last element is the aggregate mean
+            bias, and the preceding elements are the channel-wise mean bias.
+        :rtype: torch.FloatTensor|torch.DoubleTensor
+        """
+        super().cast_to_device(pred)
+        return gaussian_spread_skill_ratio(pred, target, self.aggregate_only, self.lat_weights)
+
+
 @register("KGE")
 class KGE(Metric):
     """Computes Kling-Gupta Efficiency """

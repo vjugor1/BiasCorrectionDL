@@ -27,7 +27,7 @@ def parse_tensorboard(path: str,
     return {k: pd.DataFrame(ea.Scalars(k)) for k in scalars}
 
 
-@hydra.main(config_path="/app/configs/inference", config_name="cmip6-cmip6_ens", version_base = None)
+@hydra.main(config_path="/app/configs/inference", config_name="cmip6-cmip6_factor2_ens", version_base = None)
 def save_metrics(cfg: DictConfig):
     path = cfg.path    
     models = cfg.models
