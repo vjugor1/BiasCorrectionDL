@@ -57,4 +57,16 @@ Please, refer to the notebook  `notebooks/Quickstart.ipynb` with the main models
 
 # Citation
 
-Please cite us ... TBD as soon as the paper is accepted. Stay tuned!
+If you find this repo useful in your research, please consider citing our paper:
+```latex
+@article{article,
+author = {Taniushkina, Daria and Lukashevich, Aleksandr and Shevchenko, Valeriy and Sukhorukov, Daniil and Melkozerova, Yulia and Pedashenko, Vladislav and Morozov, Vsevolod and Sultimov, Roman and Makarov, Ilya and Volkov, Aleksandr and Maximov, Yury},
+year = {2026},
+month = {01},
+pages = {47863-47878},
+title = {Bridging Global Climate Solutions and Local Realities: Evaluating Neural Networks for High-Resolution Downscaling},
+volume = {14},
+journal = {IEEE Access},
+doi = {10.1109/ACCESS.2026.3673693}
+}
+```
